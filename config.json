@@ -1,0 +1,31 @@
+{
+  "outputCurvePath": "data/example_sec.xlsx",
+  "secData": true,
+  "life_span": 30,
+  "installedPowerCapacity": 50,
+  "battery": {
+    "socMax": 0.95,
+    "socMin": 0.15,
+    "efficiency": 0.95,
+    "powerCost": 1500,
+    "capacityCost": 27000,
+    "operationCost": 0.013,
+    "cycleLimit": 3000,
+    "salvageValue": 0.03
+  },
+  "capacitor": {
+    "socMax": 0.8,
+    "socMin": 0.2,
+    "efficiency": 0.90,
+    "powerCost": 1500,
+    "capacityCost": 1000,
+    "operationCost": 0.014,
+    "cycleLimit": 50000,
+    "salvageValue": 0.04
+  },
+  "peakElectricityPrice": 0.588,
+  "offPeakElectricityPrice": 0.288,
+  "gridTariff": 0.7,
+  "frequencyResponseCompensation": 200,
+  "confidenceInterval": 1
+}

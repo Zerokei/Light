@@ -8,10 +8,13 @@ from sko.PSO import PSO
 with open("config.json", "r") as f:
     config = json.load(f)
 P_r = config['installedPowerCapacity']  # 光伏电厂额定功率 Mw
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+plt.rcParams['axes.unicode_minus'] = False  # 关闭默认使用减号字符
 
 
 # 绘制24小时时间曲线
-def draw(*args):
+def draw(*args, title=None, x_label=None, y_label=None, y_ticks=None, y_lim=None):
     # 将横坐标设置为从 0 到 86400 秒
     time = np.arange(0, 86400, 1)
     # 将横坐标的标签设置为小时数
@@ -19,12 +22,47 @@ def draw(*args):
     xtick_labels = np.arange(0, 24, 1)  # 将标签设置为小时数，从 0 到 24
     plt.xticks(xtick_positions, xtick_labels)
 
+    if y_ticks:
+        plt.yticks(y_ticks[0], y_ticks[1])
+
     for arg in args:
-        print(arg)
         plt.plot(time, arg[0], label=arg[1])
     plt.legend()
+    if title:
+        plt.title(title)
+    if x_label:
+        plt.xlabel(x_label)
+    if y_label:
+        plt.ylabel(y_label)
+    if y_lim:
+        plt.ylim(y_lim[0], y_lim[1])
     plt.show()
 
+
+def draw_bar(*args, title=None, x_label=None, y_label=None):
+
+    # 设置偏移量，使得柱形图能够依次排列
+    num_curve = len(args)
+    print("offset={}".format(np.linspace(-0.1 * (num_curve - 1) / 2, 0.1 * (num_curve - 1) / 2, num_curve)))
+    offset = iter(np.linspace(-0.3 * (num_curve - 1) / 2, 0.3 * (num_curve - 1) / 2, num_curve))
+    for arg in args:
+        print(arg[0])
+        curve = arg[0]
+        # 将秒级数据变成分钟级
+        hourly_data = [sum(curve[i*3600:i*3600+3600] / 3600) for i in range(24)]
+        # 绘制图像
+        xtick_positions = np.arange(0, 24, 1)  # 将横坐标分成 24 份
+        xtick_labels = np.arange(0, 24, 1)  # 将标签设置为小时数，从 0 到 24
+        plt.xticks(xtick_positions, xtick_labels)
+        plt.bar(xtick_positions + next(offset), hourly_data, width=0.3*(num_curve-1), label=arg[1], align="center")
+    plt.legend()
+    if x_label:
+        plt.xlabel(x_label)
+    if y_label:
+        plt.ylabel(y_label)
+    if title:
+        plt.title(title)
+    plt.show()
 
 # 数据预处理，返回秒级光伏日输出曲线
 def init_data():
@@ -43,18 +81,51 @@ def init_data():
     return np.pad(data, (0, 86400 - len(data)), 'constant', constant_values=(0, 0))
 
 
+# 计算有哪些时间段不满足并网需求
+def calc_satisfy(p_pv):
+    gamma_1min = 0.1
+    gamma_30min = 0.3
+    p_o = np.zeros(len(p_pv))
+    for t in range(1800):
+        p_o[t] = 1
+    for t in range(1800, len(p_pv)):
+        delta_p_o_1min = (np.max(p_pv[t - 59:t + 1]) - np.min(p_pv[t - 59:t + 1])) / P_r
+        p_o_1min_s = [np.sum(p_pv[t - 60 + 1 - s * 60:t - s * 60 + 1]) / 60 for s in range(30)]
+        delta_p_o_30min = (np.max(p_o_1min_s) - np.min(p_o_1min_s)) / P_r
+        if delta_p_o_1min < gamma_1min and delta_p_o_30min < gamma_30min:
+            p_o[t] = 1
+    return p_o
+
 # TODO: 平抑光伏曲线
 # 满足一分钟内不超过10%，半小时内不超过30%的频率波动
-def smooth_curve(p_pv):
+def calc_smooth_curve(p_pv):
     gamma_1min = 0.1
     gamma_30min = 0.3
 
-    print(P_r)
-
     p_o = p_pv.copy()
-    for t in range(1800):
-        p_o[t] = p_pv[1800]
-    for t in range(60, len(p_o)):
+    first_non_zero = next((i for i, x in enumerate(p_o) if x != 0), None)
+    last_non_zero = next((len(p_o) - i - 1 for i, x in enumerate(reversed(p_o)) if x != 0), None)
+
+    print(first_non_zero, last_non_zero)
+
+    for t in range(first_non_zero):
+        p_o[t] = p_pv[first_non_zero]
+    for t in range(first_non_zero, last_non_zero + 1):
+
+        # 在下午时间段设置更为严格的波动约束，迫使储能模块放电，增加光储的并网电量
+        if t/3600 > 15:
+            gamma_30min = 0.1
+        elif t/3600 > 16:
+            gamma_30min = 0.2
+        # elif t / 3600 < 8:
+        #     gamma_30min = 0.1
+        # elif t / 3600 < 9:
+        #     gamma_30min = 0.2
+        # elif t/3600 < 10:
+        #     gamma_30min = 0.25
+        else:
+            gamma_30min = 0.3
+
         # 1. 平抑曲线，使得满足一分钟不超过10%
         delta_p_o_1min = (np.max(p_o[t - 59:t + 1]) - np.min(p_o[t - 59:t + 1])) / P_r
         if delta_p_o_1min < gamma_1min:
@@ -65,10 +136,10 @@ def smooth_curve(p_pv):
             a_1 = (-gamma_1min * P_r + np.max(p_o[t - 59:t]) - p_o[t - 1]) / (p_pv[t] - p_o[t - 1])
         else:
             a_1 = 1
+        p_o[t] = (1 - a_1) * p_o[t - 1] + a_1 * p_pv[t]
 
         # 2. 平抑曲线，使得满足三十分钟不超过30%
         # TODO: 三十分钟的平抑算法有待改进
-        p_o[t] = (1 - a_1) * p_o[t - 1] + a_1 * p_pv[t]
         p_o_1min_s = [np.sum(p_o[t - 60 + 1 - s * 60:t - s * 60 + 1]) / 60 for s in range(30)]
         delta_p_o_30min = (np.max(p_o_1min_s) - np.min(p_o_1min_s)) / P_r
         if delta_p_o_30min < gamma_30min:
@@ -104,14 +175,25 @@ def smooth_curve(p_pv):
 # 目前使用的是 NFT 分频
 def subsampling_algorithm(curve):
     # TODO: 可以加入对n的调参
-    n = 46
-    X = np.fft.fft(curve)
-    x_low_freq = X.copy()
-    x_high_freq = X.copy()
+    n = 46  # 截断频率
+
+    # 快速傅里叶变换
+    curve_inv = np.fft.fft(curve)
+
+    # 截取低频部分
+    x_low_freq = curve_inv.copy()
     x_low_freq[n:] = 0
     low_freq = np.real(np.fft.ifft(x_low_freq))
+
+    # 截取高频部分
+    x_high_freq = curve_inv.copy()
     x_high_freq[:n] = 0
     high_freq = np.real(np.fft.ifft(x_high_freq))
+
+    # 原曲线为0的部分，保证生成的曲线也为0
+    low_freq = np.where(curve == 0, 0, low_freq)
+    high_freq = np.where(curve == 0, 0, high_freq)
+
     return high_freq, low_freq
 
 
@@ -192,23 +274,111 @@ class CapacityAllocation:
         return pso.gbest_x, pso.gbest_y
 
 
+# 绘制储能频率曲线
+def plt_power_curve(b_curve, sc_curve):
+    draw([sc_curve, '功率型'], [b_curve, '容量型'], title='储能频率曲线', x_label='时间(h)', y_label='功率(Mw)')
+
+
+# 绘制储能SOC曲线
+def plt_soc_curve(b_soc_curve, sc_soc_curve):
+    draw([sc_soc_curve, '功率型'], [b_soc_curve, '容量型'], title='储能SOC曲线', x_label='时间', y_label='百分比(%)', y_lim=[0, 1])
+
+
+# 绘制出力曲线
+def plt_output_curve(raw_curve, smooth_curve):
+    draw([raw_curve, '纯光伏'], [smooth_curve, '光储'], title='出力曲线', x_label='时间(h)', y_label='功率(Mw)')
+
+
+# 绘制发电量曲线
+def plt_energy_curve(raw_curve, smooth_curve):
+    draw_bar([raw_curve, '纯光伏'], [smooth_curve, '光储'], title='发电量', x_label='时间(h)', y_label='能量(Mwh)',)
+
+
+# 绘制并网时间（即满足并网需求的时间段）
+def plt_output_time(raw_curve, smooth_curve):
+    draw([raw_curve, '纯光伏'], [smooth_curve + 2, '光储'], title="并网时间", x_label="时间(h)", y_label="是否并网", y_ticks=[[0, 1, 2, 3], ['不并网','并网','不并网','并网']])
+
+
+# 绘制CO2减排量柱状图
+def plt_co2_reduce(raw_energy_curve, smooth_energy_curve):
+    k = 0.99  # 标准煤发电的 CO2 排放量约为 0.99t/Mwh
+    draw_bar([raw_energy_curve * k, '纯光伏'], [smooth_energy_curve * k, '光储'], title="CO2减排量", x_label="时间(h)", y_label="CO2减排量(t)")
+
+
+# 获取容量型储能配置
+def get_capacity_config(b_power, b_capacity):
+    print("容量型储能配置")
+    print("功率：{{}}".format(b_power))
+    print("容量：{{}}".format(b_capacity))
+
+
+# 获取功率型储能配置
+def get_power_config(sc_power, sc_capacity):
+    print("功率型储能配置")
+    print("功率：{{}}".format(sc_power))
+    print("容量：{{}}".format(sc_capacity))
+
+
+# 获取日效益
+def get_daily_benefit():
+    # TODO: 待完善算法
+    print("日效益")
+    return None
+
+
+# 获取生命周期效益
+def get_life_span_benefit():
+    # TODO: 待完善算法
+    return None
+
+
+# 获取发电实时数据
+def get_realtime_power_data(curve, t):
+    print("发电实时数据")
+    print("电压：N/A")
+    print("电流：N/A")
+    print("功率：{}".format(curve(t)))
+
+
+# 获取储能实时数据
+def get_realtime_store_data(curve, t):
+    print("储能实时数据")
+    print("电压：N/A")
+    print("电流：N/A")
+    print("功率：{}".format(curve(t)))
+
+
 # 程序入口
 if __name__ == '__main__':
     # 1. 预处理光伏日输出曲线
     rawOutputCurve = init_data()  # 平抑前的出力曲线
+    rawValidCurve = calc_satisfy(rawOutputCurve)   # 平抑前(纯光伏)并网时间曲线
 
     # 2. 平抑光伏日输出曲线，获得平抑后的出力曲线
-    smoothOutputCurve = smooth_curve(rawOutputCurve)  # 平抑后的出力曲线
+    smoothOutputCurve = calc_smooth_curve(rawOutputCurve)  # 平抑后的出力曲线
+    # smoothValidCurve = calc_satisfy(smoothOutputCurve)   # 平抑后(光储)并网时间曲线
+    smoothValidCurve = np.ones(len(smoothOutputCurve))
 
     # 3. 对平抑后的出力曲线进行分频，分出功率型出力曲线和容量型出力曲线
     # powerOutputCurve => 功率型出力曲线
     # capacityOutputCurve => 容量型出力曲线
     powerOutputCurve, capacityOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve)
-    draw([rawOutputCurve - smoothOutputCurve, 'target'], [powerOutputCurve, 'power'], [capacityOutputCurve, 'capacity'])
+    rawEnergyCurve = np.cumsum(rawOutputCurve) / 3600  # 纯光伏并网曲线
+    smoothEnergyCurve = np.cumsum(smoothOutputCurve) / 3600  # 光储并网曲线
+    # draw([rawOutputCurve - smoothOutputCurve, 'target'], [powerOutputCurve, 'power'], [capacityOutputCurve, 'capacity'])
 
     # 4. 计算最优储能容量配置
 
     Model = CapacityAllocation(powerOutputCurve, capacityOutputCurve)
     [bPower, bCapacity, scPower, scCapacity], yearCost = Model.energy_storage_capacity_allocation()
+    bSocCurve = np.cumsum(capacityOutputCurve) / 3600 / bCapacity + 0.5
+    scSocCurve = np.cumsum(powerOutputCurve) / 3600 / scCapacity + 0.5
     print("蓄电池{}Mw, {}Mwh; 超级电容{}Mw, {}Mwh; 总费用: {}元".format(bPower, bCapacity, scPower, scCapacity, yearCost))
-    # draw([rawOutputCurve, 'raw'], [smoothOutputCurve, 'smooth'], [smoothOutputCurve-rawOutputCurve, 'target'])
+
+    plt_co2_reduce(rawOutputCurve, smoothOutputCurve)
+    # plt_output_time(rawValidCurve, smoothValidCurve)
+    # plt_soc_curve(bSocCurve, scSocCurve)
+    plt_energy_curve(rawOutputCurve, smoothOutputCurve)
+    # plt_output_curve(rawOutputCurve, smoothOutputCurve)
+    # plt_power_curve(capacityOutputCurve, powerOutputCurve)
+

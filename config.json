@@ -4,8 +4,8 @@
   "life_span": 30,
   "installedPowerCapacity": 50,
   "battery": {
-    "socMax": 0.95,
-    "socMin": 0.15,
+    "socMax": 0.80,
+    "socMin": 0.20,
     "efficiency": 0.95,
     "powerCost": 1500,
     "capacityCost": 27000,
@@ -14,8 +14,8 @@
     "salvageValue": 0.03
   },
   "capacitor": {
-    "socMax": 0.8,
-    "socMin": 0.2,
+    "socMax": 0.95,
+    "socMin": 0.15,
     "efficiency": 0.90,
     "powerCost": 1500,
     "capacityCost": 1000,

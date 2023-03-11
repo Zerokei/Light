@@ -22,3 +22,13 @@
 - `gridTraiff`: 并网电价
 - `frequencyResponseCompensation`: 调频补偿
 - `confidenceInterval`: 置信区间
+
+## main.py 关键函数解释
+
+- `plt_poewr_curve`: 储能频率曲线
+- `plt_soc_curve`: 储能SOC曲线
+- `plt_output_curve`: 出力曲线
+- `plt_energy_curve`: 发电量柱形图
+- `plt_output_time`: 并网时间曲线
+- `plt_co2_reduce`: CO2减排量柱形图
+- `get_capacity_config`: 获取容量型储能配置

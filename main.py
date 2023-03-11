@@ -289,7 +289,7 @@ def plt_output_curve(raw_curve, smooth_curve):
     draw([raw_curve, '纯光伏'], [smooth_curve, '光储'], title='出力曲线', x_label='时间(h)', y_label='功率(Mw)')
 
 
-# 绘制发电量曲线
+# 绘制发电量柱形图
 def plt_energy_curve(raw_curve, smooth_curve):
     draw_bar([raw_curve, '纯光伏'], [smooth_curve, '光储'], title='发电量', x_label='时间(h)', y_label='能量(Mwh)',)
 
@@ -299,7 +299,7 @@ def plt_output_time(raw_curve, smooth_curve):
     draw([raw_curve, '纯光伏'], [smooth_curve + 2, '光储'], title="并网时间", x_label="时间(h)", y_label="是否并网", y_ticks=[[0, 1, 2, 3], ['不并网','并网','不并网','并网']])
 
 
-# 绘制CO2减排量柱状图
+# 绘制CO2减排量柱形图
 def plt_co2_reduce(raw_energy_curve, smooth_energy_curve):
     k = 0.99  # 标准煤发电的 CO2 排放量约为 0.99t/Mwh
     draw_bar([raw_energy_curve * k, '纯光伏'], [smooth_energy_curve * k, '光储'], title="CO2减排量", x_label="时间(h)", y_label="CO2减排量(t)")

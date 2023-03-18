@@ -250,7 +250,7 @@ class CapacityAllocation:
         c2 = (self.b_power_cost * b_power + self.b_capacity_cost * b_capacity) * b_replacement_times + \
              (self.sc_power_cost * sc_power + self.sc_capacity_cost * sc_capacity) * sc_replacement_times
         # 峰谷差价利润
-        c3 = 365 * self.life_span * (((self.b_daily_capacity_end / b_capacity + 0.5) * b_capacity + (self.sc_daily_capacity_end / sc_capacity + 0.5) * sc_capacity) * self.peak_electricity_price - ((0.5 - self.b_soc_min) * b_capacity + (0.5 - self.sc_soc_min) * sc_capacity) * self.off_peak_electricity_price)
+        c3 = 365 * self.life_span * (((self.b_daily_capacity_end / b_capacity - self.b_soc_min) * b_capacity + (self.sc_daily_capacity_end / sc_capacity - self.sc_soc_min) * sc_capacity) * self.peak_electricity_price - ((0.5 - self.b_soc_min) * b_capacity + (0.5 - self.sc_soc_min) * sc_capacity) * self.off_peak_electricity_price)
 
         # TODO: 先不考虑年利率
         return (c0 + c1 + c2 - c3) / self.life_span

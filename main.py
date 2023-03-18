@@ -2,6 +2,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import openpyxl
 from sko.PSO import PSO
 
 # 全局变量
@@ -332,8 +333,30 @@ def get_life_span_benefit():
     return None
 
 
+# 计算实时发电数据
+def calc_realtime_power_data(power_curve):
+    realtime_v = np.zeros(len(power_curve))  # 实时电压
+    realtime_a = np.zeros(len(power_curve))  # 实时电流
+    realtime_power = power_curve  # 实时功率
+    energy_curve = np.cumsum(power_curve) / 3600  # 累计发电量
+    realtime_energy = [energy_curve[i] if i < 3600 else energy_curve[i] - energy_curve[i-3600] for i in range(len(energy_curve))]  # 实时发电量（当前一小时发电量）
+    # 实时电压，实时电流，实时功率，实时发电量，累计发电量
+    return realtime_v, realtime_a, realtime_power, realtime_energy, energy_curve
+
+
+# 获取实时储能型/容量型数据
+def calc_realtime_bsc_data(b_soc_curve, sc_soc_curve, b_power_curve, sc_power_curve):
+    b_state_curve = ["-" if x == 0 else "放电" if x > 0 else "充电" for x in b_power_curve]
+    sc_state_curve = ["-" if x == 0 else "放电" if x > 0 else "充电" for x in sc_power_curve]
+    b_energy_curve = np.cumsum(b_power_curve) / 3600
+    sc_energy_curve = np.cumsum(sc_power_curve) / 3600
+    # 储能型实时SOC，储能型充放电状态，储能型实时功率，储能型累计充放电量，功率型实时SOC，功率型充放电状态，功率型实施功率，功率型累计充放电量
+    return b_soc_curve, b_state_curve, b_power_curve, b_energy_curve, sc_soc_curve, sc_state_curve, sc_power_curve, sc_energy_curve
+
+
 # 获取发电实时数据
 def get_realtime_power_data(curve, t):
+
     print("发电实时数据")
     print("电压：N/A")
     print("电流：N/A")
@@ -375,10 +398,12 @@ if __name__ == '__main__':
     scSocCurve = np.cumsum(powerOutputCurve) / 3600 / scCapacity + 0.5
     print("蓄电池{}Mw, {}Mwh; 超级电容{}Mw, {}Mwh; 总费用: {}元".format(bPower, bCapacity, scPower, scCapacity, yearCost))
 
-    plt_co2_reduce(rawOutputCurve, smoothOutputCurve)
+    # plt_co2_reduce(rawOutputCurve, smoothOutputCurve)
     # plt_output_time(rawValidCurve, smoothValidCurve)
     # plt_soc_curve(bSocCurve, scSocCurve)
-    plt_energy_curve(rawOutputCurve, smoothOutputCurve)
+    # plt_energy_curve(rawOutputCurve, smoothOutputCurve)
     # plt_output_curve(rawOutputCurve, smoothOutputCurve)
     # plt_power_curve(capacityOutputCurve, powerOutputCurve)
+    calc_realtime_bsc_data(bSocCurve, scSocCurve, capacityOutputCurve, powerOutputCurve)
+    calc_realtime_power_data(smoothOutputCurve)
 

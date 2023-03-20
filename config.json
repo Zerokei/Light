@@ -1,8 +1,8 @@
 {
-  "outputCurvePath": "data/example_sec.xlsx",
+  "outputCurvePath": "data/example_sec.csv",
   "secData": true,
   "life_span": 30,
-  "installedPowerCapacity": 50,
+  "installedPowerCapacity": 70,
   "battery": {
     "socMax": 0.80,
     "socMin": 0.20,

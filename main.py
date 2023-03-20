@@ -1,13 +1,21 @@
 import json
+import time
+import cProfile
+from scipy import signal
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import openpyxl
+from numba import jit
+from typing import Dict
 from sko.PSO import PSO
 
 # 全局变量
+config: Dict[str,any]
 with open("config.json", "r") as f:
     config = json.load(f)
+output_curve_path = config['outputCurvePath']
+sec_data = config['secData']
 P_r = config['installedPowerCapacity']  # 光伏电厂额定功率 Mw
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
@@ -65,109 +73,92 @@ def draw_bar(*args, title=None, x_label=None, y_label=None):
         plt.title(title)
     plt.show()
 
+
 # 数据预处理，返回秒级光伏日输出曲线
 def init_data():
-    global config
     # 读取指定发电输出曲线文件
-    df = pd.read_excel(config['outputCurvePath'], sheet_name='Sheet1')
+    df = pd.read_csv(output_curve_path)
 
     # 提取第三行及以后，第二列的数据，存入向量中
-    data = [row[1] for i, row in df.iloc[2:].iterrows()]
+    data = df.iloc[:, 1].values
 
     # 将分钟级数据扩展为秒级数据
-    if not config['secData']:
+    if not sec_data:
         data = [num for num in data for _ in range(60)]
 
     # 填充不满24h的数据（默认为0）
     return np.pad(data, (0, 86400 - len(data)), 'constant', constant_values=(0, 0))
 
 
-# 计算有哪些时间段不满足并网需求
-def calc_satisfy(p_pv):
-    gamma_1min = 0.1
-    gamma_30min = 0.3
-    p_o = np.zeros(len(p_pv))
-    for t in range(1800):
-        p_o[t] = 1
-    for t in range(1800, len(p_pv)):
-        delta_p_o_1min = (np.max(p_pv[t - 59:t + 1]) - np.min(p_pv[t - 59:t + 1])) / P_r
-        p_o_1min_s = [np.sum(p_pv[t - 60 + 1 - s * 60:t - s * 60 + 1]) / 60 for s in range(30)]
-        delta_p_o_30min = (np.max(p_o_1min_s) - np.min(p_o_1min_s)) / P_r
-        if delta_p_o_1min < gamma_1min and delta_p_o_30min < gamma_30min:
-            p_o[t] = 1
-    return p_o
-
-# TODO: 平抑光伏曲线
 # 满足一分钟内不超过10%，半小时内不超过30%的频率波动
 def calc_smooth_curve(p_pv):
+
+    first_non_zero = next((i for i, x in enumerate(p_pv) if x != 0), None)
+    last_non_zero = next((len(p_pv) - i - 1 for i, x in enumerate(reversed(p_pv)) if x != 0), None)
+
+    f_c_max = 0.001
+    f_c_min = 0.000001
+    iteration_times = 5
+    for i in range(iteration_times):
+        f_c = (f_c_max + f_c_min) / 2
+        # 低通滤波
+        b, a = signal.butter(2, f_c, 'low')  # 二阶低通滤波器
+        p_o_filtered = signal.filtfilt(b, a, p_pv)
+        p_o_filtered = np.concatenate((np.zeros(first_non_zero), p_o_filtered[first_non_zero:last_non_zero], np.zeros(len(p_pv) - last_non_zero)))
+        if judge_satisfy(p_o_filtered, first_non_zero, last_non_zero):
+            f_c_min = f_c
+        else:
+            f_c_max = f_c
+    return p_o_filtered
+
+
+# 判断当前曲线是否全部满足并网要求
+@jit(nopython=True)
+def judge_satisfy(p_pv, first_non_zero, last_non_zero):
     gamma_1min = 0.1
     gamma_30min = 0.3
 
-    p_o = p_pv.copy()
-    first_non_zero = next((i for i, x in enumerate(p_o) if x != 0), None)
-    last_non_zero = next((len(p_o) - i - 1 for i, x in enumerate(reversed(p_o)) if x != 0), None)
+    # p_pv_minute 预处理前一分钟平均功率，优化推导速度
+    p_pv_sum = np.cumsum(p_pv)  # 预处理功率前缀和
+    # p_pv_minute = [0 if t < 60 else (p_pv_sum[t] - p_pv_sum[t - 60]) / 60 for t in range(len(p_pv))]
 
-    print(first_non_zero, last_non_zero)
+    for t in range(first_non_zero, last_non_zero):
+        p_o_1min_s = [(p_pv_sum[t - s * 60] - p_pv_sum[t - s * 60 - 60]) / 60 for s in range(30)]
+        # p_o_1min_s = [p_pv_minute[t - s * 60] for s in range(30)]
+        delta_p_o_30min = (max(p_o_1min_s) - min(p_o_1min_s)) / P_r
+        if not delta_p_o_30min < gamma_30min:
+            return False
+    for t in range(first_non_zero, last_non_zero):
+        delta_p_o_1min = (max(p_pv[t - 59:t + 1]) - min(p_pv[t - 59:t + 1])) / P_r
+        if not delta_p_o_1min < gamma_1min:
+            return False
+    return True
 
-    for t in range(first_non_zero):
-        p_o[t] = p_pv[first_non_zero]
-    for t in range(first_non_zero, last_non_zero + 1):
 
-        # 在下午时间段设置更为严格的波动约束，迫使储能模块放电，增加光储的并网电量
-        if t/3600 > 15:
-            gamma_30min = 0.1
-        elif t/3600 > 16:
-            gamma_30min = 0.2
-        # elif t / 3600 < 8:
-        #     gamma_30min = 0.1
-        # elif t / 3600 < 9:
-        #     gamma_30min = 0.2
-        # elif t/3600 < 10:
-        #     gamma_30min = 0.25
-        else:
-            gamma_30min = 0.3
+# 计算有哪些时间段不满足并网需求
+def calc_satisfy(p_pv):
+    first_non_zero = next((i for i, x in enumerate(p_pv) if x != 0), None)
+    last_non_zero = next((len(p_pv) - i - 1 for i, x in enumerate(reversed(p_pv)) if x != 0), None)
+    return calc_satisfy_main(p_pv, first_non_zero, last_non_zero)
 
-        # 1. 平抑曲线，使得满足一分钟不超过10%
-        delta_p_o_1min = (np.max(p_o[t - 59:t + 1]) - np.min(p_o[t - 59:t + 1])) / P_r
-        if delta_p_o_1min < gamma_1min:
-            a_1 = 1
-        elif p_pv[t] > p_o[t - 1]:
-            a_1 = (gamma_1min * P_r + np.min(p_o[t - 59:t]) - p_o[t - 1]) / (p_pv[t] - p_o[t - 1])
-        elif p_pv[t] < p_o[t - 1]:
-            a_1 = (-gamma_1min * P_r + np.max(p_o[t - 59:t]) - p_o[t - 1]) / (p_pv[t] - p_o[t - 1])
-        else:
-            a_1 = 1
-        p_o[t] = (1 - a_1) * p_o[t - 1] + a_1 * p_pv[t]
 
-        # 2. 平抑曲线，使得满足三十分钟不超过30%
-        # TODO: 三十分钟的平抑算法有待改进
-        p_o_1min_s = [np.sum(p_o[t - 60 + 1 - s * 60:t - s * 60 + 1]) / 60 for s in range(30)]
-        delta_p_o_30min = (np.max(p_o_1min_s) - np.min(p_o_1min_s)) / P_r
-        if delta_p_o_30min < gamma_30min:
-            a_2 = 1
-        elif p_o_1min_s[0] > p_o_1min_s[1]:
-            a_2 = (60 * (gamma_30min * P_r + np.min(p_o_1min_s[1:])) - np.sum(p_o[t - 59:t]) - p_o[t - 1]) / (
-                    p_pv[t] - p_o[t - 1])
-        elif p_o_1min_s[0] < p_o_1min_s[1]:
-            a_2 = (60 * (-gamma_30min * P_r + np.max(p_o_1min_s[1:])) - np.sum(p_o[t - 59:t]) - p_o[t - 1]) / (
-                    p_pv[t] - p_o[t - 1])
-        else:
-            a_2 = 1
+@jit(nopython=True)
+def calc_satisfy_main(p_pv, first_non_zero, last_non_zero):
+    gamma_1min = 0.1
+    gamma_30min = 0.3
 
-        a_2 = np.clip(a_2, 0, 1)
-        p_o[t] = (1 - a_2) * p_o[t - 1] + a_2 * p_pv[t]
+    # p_pv_minute 预处理前一分钟平均功率，优化推导速度
+    p_pv_sum = np.cumsum(p_pv)  # 预处理功率前缀和
 
-        # 3. 限值附近的平缓处理
-        # TODO: 貌似没有作用，且没有理解论文的公式
-        delta_p_o_30min = (np.max(p_o_1min_s) - np.min(p_o_1min_s)) / P_r
+    # p_o 标记哪些时间可以并网
+    p_o = np.ones(len(p_pv))
 
-        if delta_p_o_30min < 0.9 * gamma_30min:
-            delta_p_o_t_1 = 0.1 * gamma_1min + 0.9 * gamma_1min * np.cos(np.pi / 18 * delta_p_o_30min)
-        elif delta_p_o_30min < gamma_30min:
-            delta_p_o_t_1 = 0.1 * gamma_1min + 0.1 * gamma_1min * np.cos(np.pi / 2 * delta_p_o_30min)
-        else:
-            delta_p_o_t_1 = 0
-        p_o[t] = p_o[t] + delta_p_o_t_1
+    for t in range(first_non_zero, last_non_zero):
+        p_o_1min_s = [(p_pv_sum[t - s * 60] - p_pv_sum[t - s * 60 - 60]) / 60 for s in range(30)]
+        delta_p_o_30min = (max(p_o_1min_s) - min(p_o_1min_s)) / P_r
+        delta_p_o_1min = (max(p_pv[t - 59:t + 1]) - min(p_pv[t - 59:t + 1])) / P_r
+        if not (delta_p_o_30min < gamma_30min and delta_p_o_1min < gamma_1min):
+            p_o[t] = 0
 
     return p_o
 
@@ -297,6 +288,7 @@ def plt_energy_curve(raw_curve, smooth_curve):
 
 # 绘制并网时间（即满足并网需求的时间段）
 def plt_output_time(raw_curve, smooth_curve):
+    print(smooth_curve)
     draw([raw_curve, '纯光伏'], [smooth_curve + 2, '光储'], title="并网时间", x_label="时间(h)", y_label="是否并网", y_ticks=[[0, 1, 2, 3], ['不并网','并网','不并网','并网']])
 
 
@@ -373,14 +365,20 @@ def get_realtime_store_data(curve, t):
 
 # 程序入口
 if __name__ == '__main__':
+
+    start_time = time.time()
     # 1. 预处理光伏日输出曲线
     rawOutputCurve = init_data()  # 平抑前的出力曲线
+    start_time1 = time.time()
     rawValidCurve = calc_satisfy(rawOutputCurve)   # 平抑前(纯光伏)并网时间曲线
+    end_time1 = time.time()
+    print(end_time1 - start_time1)
 
     # 2. 平抑光伏日输出曲线，获得平抑后的出力曲线
     smoothOutputCurve = calc_smooth_curve(rawOutputCurve)  # 平抑后的出力曲线
     # smoothValidCurve = calc_satisfy(smoothOutputCurve)   # 平抑后(光储)并网时间曲线
     smoothValidCurve = np.ones(len(smoothOutputCurve))
+    # cProfile.run('calc_smooth_curve(rawOutputCurve)')
 
     # 3. 对平抑后的出力曲线进行分频，分出功率型出力曲线和容量型出力曲线
     # powerOutputCurve => 功率型出力曲线
@@ -398,12 +396,17 @@ if __name__ == '__main__':
     scSocCurve = np.cumsum(powerOutputCurve) / 3600 / scCapacity + 0.5
     print("蓄电池{}Mw, {}Mwh; 超级电容{}Mw, {}Mwh; 总费用: {}元".format(bPower, bCapacity, scPower, scCapacity, yearCost))
 
+    # 5. 计算实时数据
+    calc_realtime_bsc_data(bSocCurve, scSocCurve, capacityOutputCurve, powerOutputCurve)
+    calc_realtime_power_data(smoothOutputCurve)
+
     # plt_co2_reduce(rawOutputCurve, smoothOutputCurve)
     # plt_output_time(rawValidCurve, smoothValidCurve)
     # plt_soc_curve(bSocCurve, scSocCurve)
     # plt_energy_curve(rawOutputCurve, smoothOutputCurve)
     # plt_output_curve(rawOutputCurve, smoothOutputCurve)
     # plt_power_curve(capacityOutputCurve, powerOutputCurve)
-    calc_realtime_bsc_data(bSocCurve, scSocCurve, capacityOutputCurve, powerOutputCurve)
-    calc_realtime_power_data(smoothOutputCurve)
 
+    end_time = time.time()
+    run_time = end_time - start_time
+    print("程序运行时间：", run_time, "秒")

@@ -508,10 +508,10 @@ if __name__ == '__main__':
     Model.energy_storage_capacity_allocation()
     # Model.print_more_info()
     # print("{}: {}".format(i, plot_h_num(Model.yearly_net_earn)))
-    # print(Model.get_b_para())
-    # print(Model.get_sc_para())
-    # print(Model.get_daily_benefit())
-    # print(Model.get_lifespan_benefit())
+    print(Model.get_b_para())
+    print(Model.get_sc_para())
+    print(Model.get_daily_benefit())
+    print(Model.get_lifespan_benefit())
     bSocCurve = np.cumsum(capacityOutputCurve) / 3600 / Model.b_capacity + 0.5
     scSocCurve = np.cumsum(powerOutputCurve) / 3600 / Model.sc_capacity + 0.5
 

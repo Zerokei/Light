@@ -6,22 +6,22 @@
   "battery": {
     "socMax": 0.80,
     "socMin": 0.20,
-    "efficiency": 0.95,
-    "powerCost": 1500,
-    "capacityCost": 27000,
-    "operationCost": 0.013,
-    "cycleLimit": 3000,
-    "salvageValue": 0.03
-  },
-  "capacitor": {
-    "socMax": 0.95,
-    "socMin": 0.15,
     "efficiency": 0.90,
     "powerCost": 1500,
     "capacityCost": 1000,
     "operationCost": 0.014,
-    "cycleLimit": 50000,
+    "cycleLimit": 5000,
     "salvageValue": 0.04
+  },
+  "capacitor": {
+    "socMax": 0.95,
+    "socMin": 0.15,
+    "efficiency": 0.95,
+    "powerCost": 1500,
+    "capacityCost": 27000,
+    "operationCost": 0.013,
+    "cycleLimit": 50000,
+    "salvageValue": 0.03
   },
   "peakElectricityPrice": 0.588,
   "offPeakElectricityPrice": 0.288,

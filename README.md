@@ -43,3 +43,10 @@
 - `plt_output_time`: 并网时间曲线
 - `plt_co2_reduce`: CO2减排量柱形图
 - `get_capacity_config`: 获取容量型储能配置
+- `get_realtime_power_data`: 获取发电实时数据
+- `get_realtime_store_data`: 获取储能实时数据
+- `class CapacityAllocation`:
+  - `get_daily_benefit`: 获取日效益
+  - `get_lifespan_benefit`: 获取生命周期效益
+  - `get_b_para`: 获取容量型储能配置
+  - `get_sc_para`: 获取功率型储能配置

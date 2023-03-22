@@ -4,7 +4,7 @@
 
 - `example.csv`：分钟级数据
 - `example_sec.csv`：秒级数据
-  - 装机容量：70Mw
+  - 装机容量：50Mw
 - `example_139.csv`：第139天的秒级数据
   - 装机容量：5000Mw
 - `example_201.csv`：第201天的秒级数据

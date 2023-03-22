@@ -232,6 +232,10 @@ class CapacityAllocation:
         self.daily_raw_electricity = daily_raw_electricity
         self.per_electricity_price = 700.0  # 并网价格 RMB/mWh
 
+        # 蓄电池和超级电容的限制
+        self.b_ratio = 2.3 / 3.2  # 蓄电池 能量 / 功率
+        self.sc_ratio = 0.9 / 5.1  # 超级电容 能量 / 功率
+
         # 计算结果
         self.b_power = 0  # 蓄电池额定功率
         self.b_capacity = 0  # 蓄电池配置容量
@@ -265,18 +269,20 @@ class CapacityAllocation:
         self.c1 = 365 * 24 * self.life_span * (self.b_operation_cost * self.b_capacity + self.sc_operation_cost * self.sc_capacity)
         # 更换成本
         self.c2 = (self.b_power_cost * self.b_power + self.b_capacity_cost * self.b_capacity) * b_replacement_times + \
-             (self.sc_power_cost * self.sc_power) * sc_replacement_times
+             (self.sc_power_cost * self.sc_power + self.sc_capacity_cost * self.sc_capacity) * sc_replacement_times
         # 峰谷差价利润
         self.c3 = 365 * self.life_span * (((self.sc_daily_capacity_end / self.sc_capacity + 0.5 - self.sc_soc_min) * self.sc_capacity) * self.peak_electricity_price - ((0.5 - self.sc_soc_min) * self.sc_capacity) * self.off_peak_electricity_price)
         # 并网收益
         self.c4 = 365 * self.life_span * self.per_electricity_price * self.daily_electricity
         # 年均花费
         self.yearly_cost = (self.c0 + self.c1 + self.c2) / self.life_span
+        # 年均净收益
+        self.yearly_net_earn = (self.c3 + self.c4 - self.c0 - self.c1 - self.c2) / self.life_span
 
     # 获取关于经济型的详细数据
     def print_more_info(self):
         print("超级电容：{}Mw，{}Mwh；蓄电池：{}Mw，{}Mwh".format(plot_h_num(self.sc_power), plot_h_num(self.sc_capacity), plot_h_num(self.b_power), plot_h_num(self.b_capacity)))
-        print("总成本：{}元，总收益：{}元，年均净利润：{}元".format(plot_h_num(self.c0 + self.c1 + self.c2), plot_h_num(self.c3 + self.c4), plot_h_num((self.c3 + self.c4 - self.c0 - self.c1 - self.c2) / self.life_span)))
+        print("总成本：{}元，总收益：{}元，年均净利润：{}元".format(plot_h_num(self.c0 + self.c1 + self.c2), plot_h_num(self.c3 + self.c4), plot_h_num(self.yearly_net_earn)))
         print("设计建设成本：{}元，维护成本：{}元，更换成本：{}元".format(plot_h_num(self.c0), plot_h_num(self.c1), plot_h_num(self.c2)))
         print("电容度电成本：{}元/kwh".format(plot_h_num((self.sc_capacity * self.sc_capacity_cost + self.sc_power * self.sc_power_cost) / (self.sc_capacity * self.sc_cycle_limit) / 1000)))
         print("电池度电成本：{}元/kwh".format(plot_h_num((self.b_capacity * self.b_capacity_cost + self.b_power * self.b_power_cost) / (self.b_capacity * self.b_cycle_limit) / 1000)))
@@ -319,7 +325,13 @@ class CapacityAllocation:
 
     # 成本估算函数
     def calc_cost(self, x):
-        b_power, b_capacity, sc_power, sc_capacity = x
+        b_ratio, b_capacity, sc_ratio, sc_capacity = x
+        b_power = b_capacity / b_ratio
+        sc_power = sc_capacity / sc_ratio
+
+        if b_power < self.b_max_power or sc_power < self.sc_max_power:
+            return 1e18
+
         # 蓄电池一天的循环次数
         b_daily_soc = self.b_daily_capacity / b_capacity
         # 超级电容一天的循环次数，超级电容参与赚取峰谷差价
@@ -346,11 +358,9 @@ class CapacityAllocation:
 
     # 储能容量配置
     def energy_storage_capacity_allocation(self):
-        lb = [self.b_max_power, max(min(self.b_capacity_curve) / (self.b_soc_min - 0.5),
-                                    max(self.b_capacity_curve) / (self.b_soc_max - 0.5)),
-              self.sc_max_power, max(min(self.sc_capacity_curve) / (self.sc_soc_min - 0.5),
-                                     max(self.sc_capacity_curve) / (self.sc_soc_max - 0.5))]  # 下界
-        ub = [1e5] * 4  # 上界
+        lb = [10, max(min(self.b_capacity_curve) / (self.b_soc_min - 0.5), max(self.b_capacity_curve) / (self.b_soc_max - 0.5)),
+              0.00001, max(min(self.sc_capacity_curve) / (self.sc_soc_min - 0.5), max(self.sc_capacity_curve) / (self.sc_soc_max - 0.5))]  # 下界
+        ub = [1000, 1e8, 0.05, 1e8]  # 上界
         # print("下界：{}；上界：{}".format(lb,ub))
         c1 = 1.6  # 个体学习因子
         c2 = 1.6  # 群体学习因子
@@ -361,27 +371,30 @@ class CapacityAllocation:
         pso = PSO(func=self.calc_cost, n_dim=4, pop=n_particles, max_iter=n_iterations, lb=lb, ub=ub, w=w, c1=c1, c2=c2)
         pso.run()
 
-        self.yearly_net_earn = -pso.gbest_y[0]
-        self.b_power, self.b_capacity, self.sc_power, self.sc_capacity = pso.gbest_x
+        if -pso.gbest_y[0] < 0:
+            return self.energy_storage_capacity_allocation()
+        self.b_ratio, self.b_capacity, self.sc_ratio, self.sc_capacity = pso.gbest_x
+        self.b_power = self.b_capacity / self.b_ratio
+        self.sc_power = self.sc_capacity / self.sc_ratio
 
         # 进一步处理数据
         self.calc_result()
-
         # TODO: 展示动画
-        return pso.gbest_x, pso.gbest_y
 
 
 # 比较单一储能和混合储能
 def compare_storage(sc_curve, b_curve, daily_electricity, daily_raw_electricity):
     power_output_curve = [sc_curve, np.ones(len(b_curve)) * 0.000000000001, sc_curve + b_curve]
     capacity_output_curve = [b_curve, b_curve + sc_curve, np.ones(len(b_curve)) * 0.000000000001]
-    caption = ['混合储能', '仅蓄电池', '仅超级电容']
+    caption = ['混合储能', '仅超级电容', '仅蓄电池']
+    result = [0, 0, 0]
     for i in range(3):
         print("===" + caption[i] + "===")
-        model = CapacityAllocation(power_output_curve[i], capacity_output_curve[i], daily_electricity, daily_raw_electricity)
+        model = CapacityAllocation(capacity_output_curve[i], power_output_curve[i], daily_electricity, daily_raw_electricity)
         model.energy_storage_capacity_allocation()
         model.print_more_info()
-
+        result[i] = model.yearly_net_earn
+    return result
 
 # 绘制储能频率曲线
 def plt_power_curve(b_curve, sc_curve):
@@ -497,14 +510,15 @@ if __name__ == '__main__':
     # 3. 对平抑后的出力曲线进行分频，分出功率型出力曲线和容量型出力曲线
     # powerOutputCurve => 功率型出力曲线
     # capacityOutputCurve => 容量型出力曲线
-    powerOutputCurve, capacityOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve)
+    powerOutputCurve, capacityOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=71)
     rawEnergyCurve = np.cumsum(rawOutputCurve) / 3600  # 纯光伏并网曲线
     smoothEnergyCurve = np.cumsum(smoothOutputCurve) / 3600  # 光储并网曲线
     # draw([rawOutputCurve - smoothOutputCurve, 'target'], [powerOutputCurve, 'power'], [capacityOutputCurve, 'capacity'])
 
     # 4. 计算最优储能容量配置
 
-    Model = CapacityAllocation(powerOutputCurve, capacityOutputCurve, np.sum(smoothOutputCurve) / 3600, np.sum(rawOutputCurve) / 3600)
+    Model = CapacityAllocation(powerOutputCurve, capacityOutputCurve, np.sum(smoothOutputCurve) / 3600,
+                               np.sum(rawOutputCurve) / 3600)
     Model.energy_storage_capacity_allocation()
     # Model.print_more_info()
     # print("{}: {}".format(i, plot_h_num(Model.yearly_net_earn)))
@@ -515,8 +529,27 @@ if __name__ == '__main__':
     bSocCurve = np.cumsum(capacityOutputCurve) / 3600 / Model.b_capacity + 0.5
     scSocCurve = np.cumsum(powerOutputCurve) / 3600 / Model.sc_capacity + 0.5
 
-    # * 比较混合储能与单一储能
-    # compare_storage(powerOutputCurve, capacityOutputCurve, np.sum(smoothOutputCurve) / 3600, np.sum(rawOutputCurve) / 3600)
+    compare_res = compare_storage(powerOutputCurve, capacityOutputCurve, np.sum(smoothOutputCurve) / 3600, np.sum(rawOutputCurve) / 3600)
+    # 调整分段点
+    # iters = [i for i in range(50, 100)]
+    # vec = np.array([])
+    # for i in iters:
+    #     powerOutputCurve, capacityOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=i)
+    #     rawEnergyCurve = np.cumsum(rawOutputCurve) / 3600  # 纯光伏并网曲线
+    #     smoothEnergyCurve = np.cumsum(smoothOutputCurve) / 3600  # 光储并网曲线
+    #
+    #     Model = CapacityAllocation(powerOutputCurve, capacityOutputCurve, np.sum(smoothOutputCurve) / 3600, np.sum(rawOutputCurve) / 3600)
+    #     Model.energy_storage_capacity_allocation()
+    #     # Model.print_more_info()
+    #     print("{}: {}".format(i, plot_h_num(Model.yearly_net_earn)))
+    #
+    #     # * 比较混合储能与单一储能
+    #     vec = np.append(vec, Model.yearly_net_earn)
+    # plt.plot(iters, vec, label="混合储能")
+    # plt.plot(iters, [compare_res[1]] * len(iters), label="超级电容")
+    # plt.plot(iters, [compare_res[2]] * len(iters), label="蓄电池")
+    # plt.legend()
+    # plt.show()
 
     # 5. 计算实时数据
     calc_realtime_bsc_data(bSocCurve, scSocCurve, capacityOutputCurve, powerOutputCurve)

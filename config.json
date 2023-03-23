@@ -27,5 +27,6 @@
   "offPeakElectricityPrice": 0.288,
   "gridTariff": 0.7,
   "frequencyResponseCompensation": 200,
-  "confidenceInterval": 1
+  "confidenceInterval": 1,
+  "gridPrice": 700
 }

@@ -33,6 +33,7 @@
 - `gridTraiff`: 并网电价
 - `frequencyResponseCompensation`: 调频补偿
 - `confidenceInterval`: 置信区间
+- `gridPrice`: 并网价格
 
 ## main.py 关键函数解释
 

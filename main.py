@@ -15,6 +15,7 @@ config: Dict[str,any]
 with open("config.json", "r") as f:
     config = json.load(f)
 output_curve_path = config['outputCurvePath']
+grid_price = config['gridPrice']
 sec_data = config['secData']
 P_r = config['installedPowerCapacity']  # 光伏电厂额定功率 Mw
 plt.rcParams['font.family'] = 'sans-serif'
@@ -217,10 +218,10 @@ class CapacityAllocation:
 
         self.b_capacity_curve = np.cumsum(b_output_curve) / 3600  # 蓄电池储能曲线 Mwh
         self.b_daily_capacity = np.sum(np.abs(np.diff(self.b_capacity_curve)))  # 蓄电池一天的储能变化 Mwh/天
-        self.b_daily_capacity_end = self.b_capacity_curve[-1]  # 蓄电池在一天结束时的储能
+        self.b_daily_capacity_end = self.b_capacity_curve[-1] + 0.5 # 蓄电池在一天结束时的储能
         self.sc_capacity_curve = np.cumsum(sc_output_curve) / 3600  # 超级电容储能曲线 Mwh
         self.sc_daily_capacity = np.sum(np.abs(np.diff(self.sc_capacity_curve)))  # 超级电容一天的储能变化 Mwh/天
-        self.sc_daily_capacity_end = self.sc_capacity_curve[-1]  # 超级电容在一天结束时的储能
+        self.sc_daily_capacity_end = self.sc_capacity_curve[-1] + 0.5 # 超级电容在一天结束时的储能
 
         self.b_max_power = max(b_output_curve)  # 蓄电池最大功率 Mw
         self.sc_max_power = max(sc_output_curve)  # 超级电容最大功率 Mw
@@ -230,7 +231,7 @@ class CapacityAllocation:
 
         self.daily_electricity = daily_electricity
         self.daily_raw_electricity = daily_raw_electricity
-        self.per_electricity_price = 700.0  # 并网价格 RMB/mWh
+        self.per_electricity_price = grid_price  # 并网价格 RMB/mWh
 
         # 蓄电池和超级电容的限制
         self.b_ratio = 2.3 / 3.2  # 蓄电池 能量 / 功率
@@ -271,7 +272,13 @@ class CapacityAllocation:
         self.c2 = (self.b_power_cost * self.b_power + self.b_capacity_cost * self.b_capacity) * b_replacement_times + \
              (self.sc_power_cost * self.sc_power + self.sc_capacity_cost * self.sc_capacity) * sc_replacement_times
         # 峰谷差价利润
-        self.c3 = 0
+        sc_profit_daily = - (self.sc_capacity * self.sc_capacity_cost + self.sc_power * self.sc_power_cost) * (self.sc_daily_capacity_end + 0.5 - 2 * self.sc_soc_min) / self.sc_cycle_limit \
+                          + (self.sc_daily_capacity_end - self.sc_soc_min) * self.sc_capacity * self.peak_electricity_price \
+                          - (0.5 - self.sc_soc_min) * self.sc_capacity * self.off_peak_electricity_price
+        b_profit_daily = - (self.b_capacity * self.b_capacity_cost + self.b_power * self.b_power_cost) * (self.b_daily_capacity_end + 0.5 - 2 * self.b_soc_min) / self.b_cycle_limit \
+                         + (self.b_daily_capacity_end - self.b_soc_min) * self.b_capacity * self.peak_electricity_price \
+                         - (0.5 - self.b_soc_min) * self.b_capacity * self.off_peak_electricity_price
+        self.c3 = 365 * self.life_span * (max(sc_profit_daily, 0) + max(b_profit_daily, 0))
         # 并网收益
         self.c4 = 365 * self.life_span * self.per_electricity_price * self.daily_electricity
         # 年均花费
@@ -287,7 +294,7 @@ class CapacityAllocation:
         print("电容度电成本：{}元/kwh".format(plot_h_num((self.sc_capacity * self.sc_capacity_cost + self.sc_power * self.sc_power_cost) / (self.sc_capacity * self.sc_cycle_limit) / 1000)))
         print("电池度电成本：{}元/kwh".format(plot_h_num((self.b_capacity * self.b_capacity_cost + self.b_power * self.b_power_cost) / (self.b_capacity * self.b_cycle_limit) / 1000)))
         # print("峰谷差价成本：{}元".format(plot_h_num(((self.sc_daily_capacity_end / self.sc_capacity + 0.5) + 0.5 - self.sc_soc_min * 2) * 365 * self.life_span / self.sc_cycle_limit * (self.sc_power_cost * self.sc_power + self.sc_capacity_cost * self.sc_capacity))))
-        # print("峰谷差价利润：{}元，并网利润：{}元".format(plot_h_num(self.c3), plot_h_num(self.c4)))
+        print("峰谷差价利润：{}元".format(plot_h_num(self.c3)))
         print("并网利润：{}元".format(plot_h_num(self.c4)))
 
     # 获取日效益
@@ -350,7 +357,13 @@ class CapacityAllocation:
         c2 = (self.b_power_cost * b_power + self.b_capacity_cost * b_capacity) * b_replacement_times + \
              (self.sc_power_cost * sc_power + self.sc_capacity_cost * sc_capacity) * sc_replacement_times
         # 峰谷差价利润
-        c3 = 0
+        sc_profit_daily = - (self.sc_capacity * self.sc_capacity_cost + self.sc_power * self.sc_power_cost) * (self.sc_daily_capacity_end + 0.5 - 2 * self.sc_soc_min) / self.sc_cycle_limit \
+                          + (self.sc_daily_capacity_end - self.sc_soc_min) * self.sc_capacity * self.peak_electricity_price\
+                          - (0.5 - self.sc_soc_min) * self.sc_capacity * self.off_peak_electricity_price
+        b_profit_daily = - (self.b_capacity * self.b_capacity_cost + self.b_power * self.b_power_cost) * (self.b_daily_capacity_end + 0.5 - 2 * self.b_soc_min) / self.b_cycle_limit \
+                         + (self.b_daily_capacity_end - self.b_soc_min) * self.b_capacity * self.peak_electricity_price \
+                         - (0.5 - self.b_soc_min) * self.b_capacity * self.off_peak_electricity_price
+        c3 = 365 * self.life_span * (max(sc_profit_daily, 0) + max(b_profit_daily, 0))
         # 并网收益
         c4 = 365 * self.life_span * self.per_electricity_price * self.daily_electricity
 
@@ -507,6 +520,12 @@ if __name__ == '__main__':
     # smoothValidCurve = calc_satisfy(smoothOutputCurve)   # 平抑后(光储)并网时间曲线
     smoothValidCurve = np.ones(len(smoothOutputCurve))
     # cProfile.run('calc_smooth_curve(rawOutputCurve)')
+
+    # * 假设平抑前不满足要求的电量不并网
+    # rawOutputAssumeCurve = np.multiply(rawOutputCurve, rawValidCurve)
+    # draw([rawOutputAssumeCurve, '平抑前'], [smoothOutputCurve, '平抑后'])
+    # print("平抑前的并网电量：{} Mw，并网时间：{} 小时，并网收益：{}元".format(sum(rawOutputAssumeCurve)/3600, sum(rawValidCurve) / 3600, sum(rawOutputAssumeCurve) / 3600 * grid_price))
+    # print("平抑后的并网电量：{} Mw，并网时间：{} 小时，并网收益：{}元".format(sum(smoothOutputCurve)/3600, sum(smoothValidCurve) / 3600, sum(smoothOutputCurve) / 3600 * grid_price))
 
     # 3. 对平抑后的出力曲线进行分频，分出功率型出力曲线和容量型出力曲线
     # powerOutputCurve => 功率型出力曲线

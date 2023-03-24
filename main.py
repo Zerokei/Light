@@ -395,6 +395,8 @@ class CapacityAllocation:
         self.calc_result()
         # TODO: 展示动画
 
+        return pso.gbest_x, pso.gbest_y
+
 
 # 比较单一储能和混合储能
 def compare_storage(b_curve, sc_curve, daily_electricity, daily_raw_electricity):

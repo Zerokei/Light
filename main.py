@@ -175,7 +175,7 @@ def calc_satisfy_main(p_pv, first_non_zero, last_non_zero):
 
 # 分频算法，将输入曲线分为高频和低频两个部分
 # 目前使用的是 NFT 分频
-def subsampling_algorithm(curve, n=46):
+def subsampling_algorithm(curve, n=70):
     # TODO: 可以加入对n的调参
 
     # 快速傅里叶变换
@@ -195,7 +195,7 @@ def subsampling_algorithm(curve, n=46):
     low_freq = np.where(curve == 0, 0, low_freq)
     high_freq = np.where(curve == 0, 0, high_freq)
 
-    return low_freq, high_freq
+    return high_freq, low_freq
 
 
 class CapacityAllocation:
@@ -434,7 +434,6 @@ def plt_energy_curve(raw_curve, smooth_curve):
 
 # 绘制并网时间（即满足并网需求的时间段）
 def plt_output_time(raw_curve, smooth_curve):
-    print(smooth_curve)
     draw([raw_curve, '纯光伏'], [smooth_curve + 2, '光储'], title="并网时间", x_label="时间(h)", y_label="是否并网", y_ticks=[[0, 1, 2, 3], ['不并网','并网','不并网','并网']])
 
 
@@ -532,7 +531,7 @@ if __name__ == '__main__':
     # 3. 对平抑后的出力曲线进行分频，分出功率型出力曲线和容量型出力曲线
     # powerOutputCurve => 功率型出力曲线
     # capacityOutputCurve => 容量型出力曲线
-    capacityOutputCurve, powerOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=70)
+    powerOutputCurve, capacityOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=70)
     rawEnergyCurve = np.cumsum(rawOutputCurve) / 3600  # 纯光伏并网曲线
     smoothEnergyCurve = np.cumsum(smoothOutputCurve) / 3600  # 光储并网曲线
     # draw([rawOutputCurve - smoothOutputCurve, 'target'], [powerOutputCurve, 'power'], [capacityOutputCurve, 'capacity'])
@@ -558,7 +557,7 @@ if __name__ == '__main__':
     # iters = [i for i in range(1, 150)]
     # vec = np.array([])
     # for i in iters:
-    #     capacityOutputCurve, powerOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=i)
+    #     powerOutputCurve, capacityOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=i)
     #     rawEnergyCurve = np.cumsum(rawOutputCurve) / 3600  # 纯光伏并网曲线
     #     smoothEnergyCurve = np.cumsum(smoothOutputCurve) / 3600  # 光储并网曲线
     #

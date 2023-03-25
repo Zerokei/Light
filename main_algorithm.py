@@ -400,7 +400,8 @@ class CapacityAllocation:
         pso.run()
 
         if -pso.gbest_y[0] < 0:
-            return self.energy_storage_capacity_allocation()
+            pass
+            #return self.energy_storage_capacity_allocation()
         self.b_ratio, self.b_capacity, self.sc_ratio, self.sc_capacity = pso.gbest_x
         self.b_power = self.b_capacity / self.b_ratio
         self.sc_power = self.sc_capacity / self.sc_ratio

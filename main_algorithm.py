@@ -172,7 +172,7 @@ def calc_satisfy_main(config, p_pv, first_non_zero, last_non_zero):
 
 # 分频算法，将输入曲线分为高频和低频两个部分
 # 目前使用的是 NFT 分频
-def subsampling_algorithm(curve, n=46):
+def subsampling_algorithm(curve, n=70):
     # TODO: 可以加入对n的调参
 
     # 快速傅里叶变换
@@ -192,7 +192,7 @@ def subsampling_algorithm(curve, n=46):
     low_freq = np.where(curve == 0, 0, low_freq)
     high_freq = np.where(curve == 0, 0, high_freq)
 
-    return low_freq, high_freq
+    return high_freq, low_freq
 
 
 class CapacityAllocation:
@@ -409,6 +409,8 @@ class CapacityAllocation:
         self.calc_result()
         # TODO: 展示动画
 
+        return pso.gbest_x, pso.gbest_y
+
 
 # 比较单一储能和混合储能
 def compare_storage(b_curve, sc_curve, daily_electricity, daily_raw_electricity):
@@ -548,7 +550,7 @@ if __name__ == '__main__':
     # 3. 对平抑后的出力曲线进行分频，分出功率型出力曲线和容量型出力曲线
     # powerOutputCurve => 功率型出力曲线
     # capacityOutputCurve => 容量型出力曲线
-    capacityOutputCurve, powerOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=70)
+    powerOutputCurve, capacityOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=70)
     rawEnergyCurve = np.cumsum(rawOutputCurve) / 3600  # 纯光伏并网曲线
     smoothEnergyCurve = np.cumsum(smoothOutputCurve) / 3600  # 光储并网曲线
     # draw([rawOutputCurve - smoothOutputCurve, 'target'], [powerOutputCurve, 'power'], [capacityOutputCurve, 'capacity'])
@@ -575,7 +577,7 @@ if __name__ == '__main__':
     # iters = [i for i in range(1, 150)]
     # vec = np.array([])
     # for i in iters:
-    #     capacityOutputCurve, powerOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=i)
+    #     powerOutputCurve, capacityOutputCurve = subsampling_algorithm(rawOutputCurve - smoothOutputCurve, n=i)
     #     rawEnergyCurve = np.cumsum(rawOutputCurve) / 3600  # 纯光伏并网曲线
     #     smoothEnergyCurve = np.cumsum(smoothOutputCurve) / 3600  # 光储并网曲线
     #

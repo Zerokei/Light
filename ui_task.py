@@ -150,7 +150,7 @@ class UiTask(object):
 
     """
 
-    def __init__(self, config):
+    def __init__(self, config, update_info_func=None):
         self.config = config
         self.rawOutputCurve = None
         self.rawValidCurve = None
@@ -164,9 +164,13 @@ class UiTask(object):
         self.run_init_data()
         self.pre_data()
         self.k = 0.99
+        self.update_info_func = update_info_func
 
     def update_progress_info(self, info: ProgressInfo):
-        pass
+        if not self.update_info_func is None:
+            self.update_info_func(info)
+        else:
+            print(info)
 
     def run_init_data(self):
         self.rawOutputCurve = init_data(self.config)
@@ -308,10 +312,6 @@ class UiTask(object):
         economic_right.年收益率 = UiEconomicDataPair()
         return economic_right
 
-    def get_data_field_names(self, obj):
-        import dataclasses
-        return [field.name for field in dataclasses.fields(obj)]
-
     def get_soc(self) -> UiSocData:
         """
         todo
@@ -338,6 +338,5 @@ if __name__ == '__main__':
     print(chart_data)
     real_time_data = task.get_realtime_date()
     print('real_time_data', real_time_data)
-    print(task.get_data_field_names(real_time_data))
 
     # print(json.dumps(chart_data, cls=EnhancedJSONEncoder, ensure_ascii=False))

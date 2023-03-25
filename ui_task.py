@@ -183,8 +183,7 @@ class UiTask(object):
         self.Model = None
         self.bSocCurve = None
         self.scSocCurve = None
-        self.run_init_data()
-        self.pre_data()
+
         self.k = 0.99
 
     def update_progress_info(self, info: ProgressInfo):
@@ -364,6 +363,8 @@ if __name__ == '__main__':
     config = json.loads(open(os.path.join(DIR_PATH, 'config.json')).read())
     config.update({"outputCurvePath": os.path.join(DIR_PATH, 'data', 'example_sec.csv')})
     task = UiTask(config, update_info_func=lambda x: print)
+    task.run_init_data()
+    task.pre_data()
     chart_data: UiChartData = task.get_chart_data()
     print("chart_data->", chart_data.并网曲线)
     # print(chart_data.to_json())

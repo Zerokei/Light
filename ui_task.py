@@ -15,6 +15,9 @@ class UiChartLine:
     name: str
     curve: np.array
 
+    def as_draw_args(self):
+        return [self.curve, self.name]
+
 
 @dataclass_json
 @dataclass

@@ -242,6 +242,11 @@ class UiTask(object):
 
     def get_economic_left(self) -> UiEconomicLeft:
         economic_left: UiEconomicLeft = UiEconomicLeft()
+        return economic_left
+
+    def get_economic_right(self) -> UiEconomicRight:
+        economic_right = UiEconomicRight()
+        return economic_right
 
     def run(self):
         pass

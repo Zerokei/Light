@@ -241,12 +241,40 @@ class UiTask(object):
         return real_time_data
 
     def get_economic_left(self) -> UiEconomicLeft:
+        """
+        todo
+        :return:
+        """
         economic_left: UiEconomicLeft = UiEconomicLeft()
+        economic_left.运维 = UiEconomicDataPair()
+        economic_left.峰谷差价 = UiEconomicDataPair()
+        economic_left.调峰 = UiEconomicDataPair()
+        economic_left.调频 = UiEconomicDataPair()
+        economic_left.售电 = UiEconomicDataPair()
+        economic_left.偏差电量 = UiEconomicDataPair()
+        economic_left.偏差店家惩罚 = UiEconomicDataPair()
         return economic_left
 
     def get_economic_right(self) -> UiEconomicRight:
+        """
+        todo
+        :return:
+        """
         economic_right = UiEconomicRight()
+        economic_right.运行年限 = UiEconomicDataPair()
+        economic_right.回本时间 = UiEconomicDataPair()
+        economic_right.容量配置 = UiEconomicDataPair()
+        economic_right.储能一次性投资 = UiEconomicDataPair()
+        economic_right.年收益率 = UiEconomicDataPair()
         return economic_right
+
+    def get_soc(self) -> UiSocData:
+        """
+        todo
+        :return:
+        """
+        soc = UiSocData()
+        return soc
 
     def run(self):
         pass

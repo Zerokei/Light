@@ -106,7 +106,7 @@ class UiEconomicLeft:
     调频: UiEconomicDataPair = None
     售电: UiEconomicDataPair = None
     偏差电量: UiEconomicDataPair = None
-    偏差店家惩罚: UiEconomicDataPair = None
+    偏差电价惩罚: UiEconomicDataPair = None
     field_names = [
         '运维',
         '峰谷差价',
@@ -114,7 +114,7 @@ class UiEconomicLeft:
         '调频',
         '售电',
         '偏差电量',
-        '偏差店家惩罚',
+        '偏差电价惩罚',
     ]
 
 
@@ -280,7 +280,9 @@ class UiTask(object):
 
     def get_realtime_date(self) -> UiRealTimeData:
         real_time_data: UiRealTimeData = UiRealTimeData()
-        b_soc_curve, b_state_curve, b_power_curve, b_energy_curve, sc_soc_curve, sc_state_curve, sc_power_curve, sc_energy_curve = calc_realtime_bsc_data(
+        b_soc_curve, b_state_curve, b_power_curve, \
+        b_energy_curve, sc_soc_curve, sc_state_curve, \
+        sc_power_curve, sc_energy_curve = calc_realtime_bsc_data(
 
             self.bSocCurve,
             self.scSocCurve,
@@ -321,7 +323,7 @@ class UiTask(object):
         economic_left.调频 = UiEconomicDataPair(values[6], values[7])
         economic_left.售电 = UiEconomicDataPair(values[8], values[9])
         economic_left.偏差电量 = UiEconomicDataPair(values[10], values[11])
-        economic_left.偏差店家惩罚 = UiEconomicDataPair(values[12], values[13])
+        economic_left.偏差电价惩罚 = UiEconomicDataPair(values[12], values[13])
         return economic_left
 
     def get_economic_right(self) -> UiEconomicRight:

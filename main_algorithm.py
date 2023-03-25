@@ -308,7 +308,7 @@ class CapacityAllocation:
 
     # 获取日效益
     def get_daily_benefit(self):
-        # 从第一行起，分别为：运维 峰谷差价 调峰 调频 售电 偏差店家惩罚 总计
+        # 从第一行起，分别为：运维 峰谷差价 调峰 调频 售电 偏差电价惩罚 总计
         # 第一列为纯光伏，第二列为光储
         return "N/A", self.c1 / self.life_span / 365, \
                "N/A", self.c3 / self.life_span / 365, \

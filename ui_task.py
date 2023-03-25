@@ -152,6 +152,7 @@ class UiTask(object):
 
     def __init__(self, config, update_info_func=None):
         self.config = config
+        self.update_info_func = update_info_func
         self.rawOutputCurve = None
         self.rawValidCurve = None
         self.smoothOutputCurve = None
@@ -164,7 +165,6 @@ class UiTask(object):
         self.run_init_data()
         self.pre_data()
         self.k = 0.99
-        self.update_info_func = update_info_func
 
     def update_progress_info(self, info: ProgressInfo):
         if not self.update_info_func is None:
@@ -290,14 +290,15 @@ class UiTask(object):
         :return:
         """
         values = self.Model.get_daily_benefit()
-        economic_left: UiEconomicLeft = UiEconomicLeft(values[0],values[1])
-        economic_left.运维 = UiEconomicDataPair(values[2],values[3])
-        economic_left.峰谷差价 = UiEconomicDataPair(values[4],values[5])
-        economic_left.调峰 = UiEconomicDataPair(values[6],values[7])
-        economic_left.调频 = UiEconomicDataPair(values[8],values[9])
-        economic_left.售电 = UiEconomicDataPair(values[10],values[11])
-        economic_left.偏差电量 = UiEconomicDataPair(values[12],values[13])
-        economic_left.偏差店家惩罚 = UiEconomicDataPair(values[14],values[15])
+        print(type(values))
+        economic_left: UiEconomicLeft = UiEconomicLeft()
+        economic_left.运维 = UiEconomicDataPair(values[0], values[1])
+        economic_left.峰谷差价 = UiEconomicDataPair(values[2], values[3])
+        economic_left.调峰 = UiEconomicDataPair(values[4], values[5])
+        economic_left.调频 = UiEconomicDataPair(values[6], values[7])
+        economic_left.售电 = UiEconomicDataPair(values[8], values[9])
+        economic_left.偏差电量 = UiEconomicDataPair(values[10], values[11])
+        economic_left.偏差店家惩罚 = UiEconomicDataPair(values[12], values[13])
         return economic_left
 
     def get_economic_right(self) -> UiEconomicRight:
@@ -305,13 +306,13 @@ class UiTask(object):
         todo
         :return:
         """
-        values=self.Model.get_lifespan_benefit()
+        values = self.Model.get_lifespan_benefit()
         economic_right = UiEconomicRight()
-        economic_right.运行年限 = UiEconomicDataPair(values[0],values[1])
-        economic_right.回本时间 = UiEconomicDataPair(values[2],values[3])
-        economic_right.容量配置 = UiEconomicDataPair(values[4],values[5])
-        economic_right.储能一次性投资 = UiEconomicDataPair(values[6],values[7])
-        economic_right.年收益率 = UiEconomicDataPair(values[8],values[9])
+        economic_right.运行年限 = UiEconomicDataPair(values[0], values[1])
+        economic_right.回本时间 = UiEconomicDataPair(values[2], values[3])
+        economic_right.容量配置 = UiEconomicDataPair(values[4], values[5])
+        economic_right.储能一次性投资 = UiEconomicDataPair(values[6], values[7])
+        economic_right.年收益率 = UiEconomicDataPair(values[8], values[9])
         return economic_right
 
     def get_soc(self) -> UiSocData:
@@ -333,12 +334,14 @@ DIR_PATH = os.path.abspath(os.path.dirname(__file__))
 if __name__ == '__main__':
     config = json.loads(open(os.path.join(DIR_PATH, 'config.json')).read())
     config.update({"outputCurvePath": os.path.join(DIR_PATH, 'data', 'example_sec.csv')})
-    task = UiTask(config)
+    task = UiTask(config, update_info_func=lambda x: print)
     chart_data: UiChartData = task.get_chart_data()
     print("chart_data->", chart_data.并网曲线)
     # print(chart_data.to_json())
     print(chart_data)
     real_time_data = task.get_realtime_date()
     print('real_time_data', real_time_data)
+    print(task.get_economic_left())
+    print(task.get_economic_right())
 
     # print(json.dumps(chart_data, cls=EnhancedJSONEncoder, ensure_ascii=False))

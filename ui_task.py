@@ -156,6 +156,7 @@ class UiEconomicRightBottom:
 @dataclass
 class UiConfig(object):
     realtime_refresh_interval: int = 1  # 一秒刷新一次
+    default_soc: str = "100%"
 
 
 @dataclass

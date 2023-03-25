@@ -154,6 +154,11 @@ class UiEconomicRightBottom:
 
 
 @dataclass
+class UiConfig(object):
+    realtime_refresh_interval: int = 1  # 一秒刷新一次
+
+
+@dataclass
 class UiData(object):
     chart_data: UiChartData = None
     realtime_data: UiRealTimeData = None
@@ -355,6 +360,9 @@ class UiTask(object):
     def get_economic_right_bottom(self) -> UiEconomicRightBottom:
         v = self.Model.get_sc_para()
         return UiEconomicLeftBottom(v[0], v[1])
+
+    def get_ui_config(self) -> UiConfig:
+        return UiConfig()
 
     def run(self):
         pass

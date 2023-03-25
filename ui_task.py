@@ -87,6 +87,7 @@ class UiRealTimeData:
 class UiSocData:
     min: str = None
     max: str = None
+    label: str = '100%'
 
 
 @dataclass

@@ -37,6 +37,14 @@ class UiChartData:
     储能频率曲线: UiChart = None  # 储能频率曲线
     储能SOC曲线: UiChart = None  # 储能频率曲线
     CO2减排曲线: UiChart = None  # CO2减排曲线
+    field_names = [
+        '出力曲线',
+        '发电量曲线',
+        '并网曲线',
+        '储能频率曲线',
+        '储能SOC曲线',
+        'CO2减排曲线'
+    ]
 
 
 @dataclass
@@ -57,6 +65,22 @@ class UiRealTimeData:
     实时功率2: np.array = None
     累计冲放电2: np.array = None
     时间2: np.array = None
+    field_names = ['实时电压',
+                   '实时电流',
+                   '实时功率',
+                   '实时发电量',
+                   '累计发电量',
+                   '时间',
+                   '实时SOC值1',
+                   '充放电状态1',
+                   '实时功率1',
+                   '累计冲放电1',
+                   '时间2',
+                   '实时SOC值2',
+                   '充放电状态2',
+                   '实时功率2',
+                   '累计冲放电2',
+                   '时间2']
 
 
 @dataclass
@@ -79,6 +103,15 @@ class UiEconomicLeft:
     售电: UiEconomicDataPair = None
     偏差电量: UiEconomicDataPair = None
     偏差店家惩罚: UiEconomicDataPair = None
+    field_names = [
+        '运维',
+        '峰谷差价',
+        '调峰',
+        '调频',
+        '售电',
+        '偏差电量',
+        '偏差店家惩罚',
+    ]
 
 
 class UiEconomicRight:
@@ -87,6 +120,13 @@ class UiEconomicRight:
     容量配置: UiEconomicDataPair = None
     储能一次性投资: UiEconomicDataPair = None
     年收益率: UiEconomicDataPair = None
+    field_names = [
+        '运行年限',
+        '回本时间',
+        '容量配置',
+        '储能一次性投资',
+        '年收益率'
+    ]
 
 
 @dataclass
@@ -268,6 +308,10 @@ class UiTask(object):
         economic_right.年收益率 = UiEconomicDataPair()
         return economic_right
 
+    def get_data_field_names(self, obj):
+        import dataclasses
+        return [field.name for field in dataclasses.fields(obj)]
+
     def get_soc(self) -> UiSocData:
         """
         todo
@@ -294,5 +338,6 @@ if __name__ == '__main__':
     print(chart_data)
     real_time_data = task.get_realtime_date()
     print('real_time_data', real_time_data)
+    print(task.get_data_field_names(real_time_data))
 
     # print(json.dumps(chart_data, cls=EnhancedJSONEncoder, ensure_ascii=False))

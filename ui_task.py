@@ -130,6 +130,26 @@ class UiEconomicRight:
 
 
 @dataclass
+class UiEconomicLeftBottom:
+    功率: str
+    容量: str
+    field_names = [
+        '功率',
+        '容量'
+    ]
+
+
+@dataclass
+class UiEconomicRightBottom:
+    功率: str
+    容量: str
+    field_names = [
+        '功率',
+        '容量'
+    ]
+
+
+@dataclass
 class UiData(object):
     chart_data: UiChartData = None
     realtime_data: UiRealTimeData = None
@@ -323,6 +343,14 @@ class UiTask(object):
         soc = UiSocData()
         return soc
 
+    def get_economic_left_bottom(self) -> UiEconomicLeftBottom:
+        v = self.Model.get_b_para()
+        return UiEconomicLeftBottom(v[0], v[1])
+
+    def get_economic_right_bottom(self) -> UiEconomicRightBottom:
+        v = self.Model.get_sc_para()
+        return UiEconomicLeftBottom(v[0], v[1])
+
     def run(self):
         pass
 
@@ -343,5 +371,7 @@ if __name__ == '__main__':
     print('real_time_data', real_time_data)
     print(task.get_economic_left())
     print(task.get_economic_right())
+    print(task.get_economic_left_bottom())
+    print(task.get_economic_right_bottom())
 
     # print(json.dumps(chart_data, cls=EnhancedJSONEncoder, ensure_ascii=False))

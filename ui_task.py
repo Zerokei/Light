@@ -307,17 +307,17 @@ class UiTask(object):
         real_time_data.实时功率 = realtime_power,
         real_time_data.实时发电量 = realtime_energy,
         real_time_data.累计发电量 = energy_curve,
-        real_time_data.时间 = time,
+        real_time_data.时间 = time / 3600,
         real_time_data.实时SOC值1 = b_soc_curve,
         real_time_data.充放电状态1 = b_state_curve,
         real_time_data.实时功率1 = b_power_curve,
         real_time_data.累计冲放电1 = b_energy_curve,
-        real_time_data.时间2 = time,
+        real_time_data.时间2 = time / 3600,
         real_time_data.实时SOC值2 = sc_soc_curve,
         real_time_data.充放电状态2 = sc_state_curve,
         real_time_data.实时功率2 = sc_power_curve,
         real_time_data.累计冲放电2 = sc_energy_curve,
-        real_time_data.时间2 = time
+        real_time_data.时间2 = time / 3600
         return real_time_data
 
     def get_economic_left(self) -> UiEconomicLeft:

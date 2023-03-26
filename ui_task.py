@@ -203,7 +203,7 @@ class UiTask(object):
 
     def get_file_encode(self):
         encoding = get_file_encoding(self.config['outputCurvePath'])
-        self.update_progress_info(ProgressInfo("文件编码检测", 11, "当前文件编码{0}".format(encoding)))
+        self.update_progress_info(ProgressInfo("文件编码检测", 8, "当前文件编码{0}".format(encoding)))
         return encoding
 
     def run_init_data(self):

@@ -87,7 +87,7 @@ def draw_bar(*args, title=None, x_label=None, y_label=None):
 
 
 def get_file_encoding(file_path):
-    with open("file.txt", "rb") as f:
+    with open(file_path, "rb") as f:
         result = chardet.detect(f.read())
         encoding = result["encoding"]
     return encoding

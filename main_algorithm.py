@@ -99,15 +99,12 @@ def init_data(config, encoding=None):
     df = None
     encodings = [encoding, get_file_encoding(config['outputCurvePath']), "utf-8", "cp1252"]
     for encoding in encodings:
-        if encoding is None:
-            continue
-        else:
-            print("csv encoding", encoding)
-            try:
-                df = pd.read_csv(config['outputCurvePath'], encoding=encoding)
-                break
-            except Exception as e:
-                print(e)
+        print("csv encoding", encoding)
+        try:
+            df = pd.read_csv(config['outputCurvePath'], encoding=encoding)
+            break
+        except Exception as e:
+            print(e)
     if df is None:
         raise Exception('输入文件有误, 无法通过编码解码')
     # 提取第三行及以后，第二列的数据，存入向量中

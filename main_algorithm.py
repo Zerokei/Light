@@ -11,6 +11,7 @@ import openpyxl
 from numba import jit
 from typing import Dict
 from sko.PSO import PSO
+import chardet
 
 # 全局变量
 
@@ -85,11 +86,28 @@ def draw_bar(*args, title=None, x_label=None, y_label=None):
     plt.show()
 
 
-# 数据预处理，返回秒级光伏日输出曲线
-def init_data(config):
-    # 读取指定发电输出曲线文件
-    df = pd.read_csv(config['outputCurvePath'])
+def get_file_encoding(file_path):
+    with open("file.txt", "rb") as f:
+        result = chardet.detect(f.read())
+        encoding = result["encoding"]
+    return encoding
 
+
+# 数据预处理，返回秒级光伏日输出曲线
+def init_data(config, encoding=None):
+    # 读取指定发电输出曲线文件
+    df = None
+    if encoding is None:
+        encoding = get_file_encoding(config['outputCurvePath'])
+        df = pd.read_csv(config['outputCurvePath'], encoding=encoding)
+    else:
+        try:
+            df = pd.read_csv(config['outputCurvePath'])
+        except Exception as e:
+            try:
+                df = pd.read_csv(config['outputCurvePath'], encoding="utf-8")
+            except Exception as e:
+                df = pd.read_csv(config['outputCurvePath'], encoding="cp1252")
     # 提取第三行及以后，第二列的数据，存入向量中
     data = df.iloc[:, 1].values
     sec_data = config['secData']
@@ -403,7 +421,7 @@ class CapacityAllocation:
 
         if -pso.gbest_y[0] < 0:
             pass
-            #return self.energy_storage_capacity_allocation()
+            # return self.energy_storage_capacity_allocation()
         self.b_ratio, self.b_capacity, self.sc_ratio, self.sc_capacity = pso.gbest_x
         self.b_power = self.b_capacity / self.b_ratio
         self.sc_power = self.sc_capacity / self.sc_ratio

@@ -99,14 +99,17 @@ def init_data(config, encoding=None):
     df = None
     if encoding is None:
         encoding = get_file_encoding(config['outputCurvePath'])
+        print("csv encoding",encoding)
         df = pd.read_csv(config['outputCurvePath'], encoding=encoding)
     else:
         try:
             df = pd.read_csv(config['outputCurvePath'])
         except Exception as e:
             try:
+                print("csv encoding", "utf-8")
                 df = pd.read_csv(config['outputCurvePath'], encoding="utf-8")
             except Exception as e:
+                print("csv encoding", "cp1252")
                 df = pd.read_csv(config['outputCurvePath'], encoding="cp1252")
     # 提取第三行及以后，第二列的数据，存入向量中
     data = df.iloc[:, 1].values

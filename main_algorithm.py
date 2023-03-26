@@ -97,20 +97,19 @@ def get_file_encoding(file_path):
 def init_data(config, encoding=None):
     # 读取指定发电输出曲线文件
     df = None
-    if encoding is None:
-        encoding = get_file_encoding(config['outputCurvePath'])
-        print("csv encoding",encoding)
-        df = pd.read_csv(config['outputCurvePath'], encoding=encoding)
-    else:
-        try:
-            df = pd.read_csv(config['outputCurvePath'])
-        except Exception as e:
+    encodings = [encoding, get_file_encoding(config['outputCurvePath']), "utf-8", "cp1252"]
+    for encoding in encodings:
+        if encoding is None:
+            continue
+        else:
+            print("csv encoding", encoding)
             try:
-                print("csv encoding", "utf-8")
-                df = pd.read_csv(config['outputCurvePath'], encoding="utf-8")
+                df = pd.read_csv(config['outputCurvePath'], encoding=encoding)
+                break
             except Exception as e:
-                print("csv encoding", "cp1252")
-                df = pd.read_csv(config['outputCurvePath'], encoding="cp1252")
+                print(e)
+    if df is None:
+        raise Exception('输入文件有误, 无法通过编码解码')
     # 提取第三行及以后，第二列的数据，存入向量中
     data = df.iloc[:, 1].values
     sec_data = config['secData']

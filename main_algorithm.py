@@ -415,12 +415,13 @@ class CapacityAllocation:
         n_particles = 40  # 种群粒子数量
         n_iterations = 300  # 最大迭代次数
 
-        pso = PSO(func=self.calc_cost, n_dim=4, pop=n_particles, max_iter=n_iterations, lb=lb, ub=ub, w=w, c1=c1, c2=c2)
-        pso.run()
+        while(1):
+            pso = PSO(func=self.calc_cost, n_dim=4, pop=n_particles, max_iter=n_iterations, lb=lb, ub=ub, w=w, c1=c1, c2=c2)
+            pso.run()
+            if -pso.gbest_y[0] > 0:
+                break
 
-        if -pso.gbest_y[0] < 0:
-            # pass
-            return self.energy_storage_capacity_allocation()
+        # return self.energy_storage_capacity_allocation()
         self.b_ratio, self.b_capacity, self.sc_ratio, self.sc_capacity = pso.gbest_x
         self.b_power = self.b_capacity / self.b_ratio
         self.sc_power = self.sc_capacity / self.sc_ratio

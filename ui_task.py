@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import sys
 from dataclasses import dataclass, is_dataclass, asdict
 
 import numpy as np
@@ -225,6 +226,7 @@ class UiTask(object):
             self.powerOutputCurve,
             np.sum(self.smoothOutputCurve) / 3600,
             np.sum(self.rawOutputCurve) / 3600)
+        self.update_progress_info(ProgressInfo("计算中", 13, "开始执行energy_storage_capacity_allocation"))
         self.Model.energy_storage_capacity_allocation()
         self.bSocCurve = np.cumsum(self.capacityOutputCurve) / 3600 / self.Model.b_capacity + 0.5
         self.scSocCurve = np.cumsum(self.powerOutputCurve) / 3600 / self.Model.sc_capacity + 0.5
@@ -308,18 +310,22 @@ class UiTask(object):
         real_time_data.实时电压 = np.concatenate((realtime_v[elapsed_seconds:], realtime_v[:elapsed_seconds]))
         real_time_data.实时电流 = np.concatenate((realtime_a[elapsed_seconds:], realtime_a[:elapsed_seconds]))
         real_time_data.实时功率 = np.concatenate((realtime_power[elapsed_seconds:], realtime_power[:elapsed_seconds]))
-        real_time_data.实时发电量 = np.concatenate((realtime_energy[elapsed_seconds:], realtime_energy[:elapsed_seconds]))
+        real_time_data.实时发电量 = np.concatenate(
+            (realtime_energy[elapsed_seconds:], realtime_energy[:elapsed_seconds]))
         real_time_data.累计发电量 = np.concatenate((energy_curve[elapsed_seconds:], energy_curve[:elapsed_seconds]))
         real_time_data.时间 = np.concatenate((time_curve[elapsed_seconds:], time_curve[:elapsed_seconds]))
         real_time_data.实时SOC值1 = np.concatenate((b_soc_curve[elapsed_seconds:], b_soc_curve[:elapsed_seconds]))
         real_time_data.充放电状态1 = np.concatenate((b_state_curve[elapsed_seconds:], b_state_curve[:elapsed_seconds]))
         real_time_data.实时功率1 = np.concatenate((b_power_curve[elapsed_seconds:], b_power_curve[:elapsed_seconds]))
-        real_time_data.累计冲放电1 = np.concatenate((b_energy_curve[elapsed_seconds:], b_energy_curve[:elapsed_seconds]))
+        real_time_data.累计冲放电1 = np.concatenate(
+            (b_energy_curve[elapsed_seconds:], b_energy_curve[:elapsed_seconds]))
         real_time_data.时间1 = np.concatenate((time_curve[elapsed_seconds:], time_curve[:elapsed_seconds]))
         real_time_data.实时SOC值2 = np.concatenate((sc_soc_curve[elapsed_seconds:], sc_soc_curve[:elapsed_seconds]))
-        real_time_data.充放电状态2 = np.concatenate((sc_state_curve[elapsed_seconds:], sc_state_curve[:elapsed_seconds]))
+        real_time_data.充放电状态2 = np.concatenate(
+            (sc_state_curve[elapsed_seconds:], sc_state_curve[:elapsed_seconds]))
         real_time_data.实时功率2 = np.concatenate((sc_power_curve[elapsed_seconds:], sc_power_curve[:elapsed_seconds]))
-        real_time_data.累计冲放电2 = np.concatenate((sc_energy_curve[elapsed_seconds:], sc_energy_curve[:elapsed_seconds]))
+        real_time_data.累计冲放电2 = np.concatenate(
+            (sc_energy_curve[elapsed_seconds:], sc_energy_curve[:elapsed_seconds]))
         real_time_data.时间2 = np.concatenate((time_curve[elapsed_seconds:], time_curve[:elapsed_seconds]))
         return real_time_data
 
@@ -382,39 +388,55 @@ import os, json
 DIR_PATH = os.path.abspath(os.path.dirname(__file__))
 
 if __name__ == '__main__':
+    print(sys.argv)
     config = json.loads(open(os.path.join(DIR_PATH, 'config.json')).read())
     config.update({"outputCurvePath": os.path.join(DIR_PATH, 'data', 'example_sec.csv')})
-    task = UiTask(config, update_info_func=lambda x: print)
-    task.run_init_data()
-    task.pre_data()
-    chart_data: UiChartData = task.get_chart_data()
-    print("chart_data->", chart_data.并网曲线)
-    # print(chart_data.to_json())
-    print(chart_data)
-    real_time_data = task.get_realtime_date()
-    print('real_time_data', real_time_data)
 
-    economic_left = task.get_economic_left()
-    print("*** economic left ***")
-    print("运维:{}元, {}元".format(economic_left.运维.光伏, economic_left.运维.光储))
-    print("峰谷差价:{}元, {}元".format(economic_left.峰谷差价.光伏, economic_left.峰谷差价.光储))
-    print("调峰:{}元, {}元".format(economic_left.调峰.光伏, economic_left.调峰.光储))
-    print("调频:{}元, {}元".format(economic_left.调频.光伏, economic_left.调频.光储))
-    print("售电:{}元, {}元".format(economic_left.售电.光伏, economic_left.售电.光储))
-    print("偏差电量惩罚:{}元, {}元".format(economic_left.偏差电量惩罚.光伏, economic_left.偏差电量惩罚.光储))
-    print("总计:{}元, {}元".format(economic_left.总计.光伏, economic_left.总计.光储))
 
-    economic_right = task.get_economic_right()
-    print("*** economic right ***")
-    print("运行年限:{}年, {}年".format(economic_right.运行年限.光伏, economic_right.运行年限.光储))
-    print("回本时间:{}年, {}年".format(economic_right.回本时间.光伏, economic_right.回本时间.光储))
-    print("容量配置:{}mW, {}mW".format(economic_right.容量配置.光伏, economic_right.容量配置.光储))
-    print("储能一次性投资:{}元, {}元".format(economic_right.储能一次性投资.光伏, economic_right.储能一次性投资.光储))
-    print("年收益率:{}%, {}%".format(economic_right.年收益率.光伏, economic_right.年收益率.光储))
+    def task_func():
+        task = UiTask(config, update_info_func=lambda x: print)
+        task.run_init_data()
+        task.pre_data()
+        chart_data: UiChartData = task.get_chart_data()
+        print("chart_data->", chart_data.并网曲线)
+        # print(chart_data.to_json())
+        print(chart_data)
+        real_time_data = task.get_realtime_date()
+        print('real_time_data', real_time_data)
 
-    print("*** economic left bottom ***")
-    print(task.get_economic_left_bottom())
-    print("*** economic_right_bottom ***")
-    print(task.get_economic_right_bottom())
+        economic_left = task.get_economic_left()
+        print("*** economic left ***")
+        print("运维:{}元, {}元".format(economic_left.运维.光伏, economic_left.运维.光储))
+        print("峰谷差价:{}元, {}元".format(economic_left.峰谷差价.光伏, economic_left.峰谷差价.光储))
+        print("调峰:{}元, {}元".format(economic_left.调峰.光伏, economic_left.调峰.光储))
+        print("调频:{}元, {}元".format(economic_left.调频.光伏, economic_left.调频.光储))
+        print("售电:{}元, {}元".format(economic_left.售电.光伏, economic_left.售电.光储))
+        print("偏差电量惩罚:{}元, {}元".format(economic_left.偏差电量惩罚.光伏, economic_left.偏差电量惩罚.光储))
+        print("总计:{}元, {}元".format(economic_left.总计.光伏, economic_left.总计.光储))
+
+        economic_right = task.get_economic_right()
+        print("*** economic right ***")
+        print("运行年限:{}年, {}年".format(economic_right.运行年限.光伏, economic_right.运行年限.光储))
+        print("回本时间:{}年, {}年".format(economic_right.回本时间.光伏, economic_right.回本时间.光储))
+        print("容量配置:{}mW, {}mW".format(economic_right.容量配置.光伏, economic_right.容量配置.光储))
+        print(
+            "储能一次性投资:{}元, {}元".format(economic_right.储能一次性投资.光伏, economic_right.储能一次性投资.光储))
+        print("年收益率:{}%, {}%".format(economic_right.年收益率.光伏, economic_right.年收益率.光储))
+
+        print("*** economic left bottom ***")
+        print(task.get_economic_left_bottom())
+        print("*** economic_right_bottom ***")
+        print(task.get_economic_right_bottom())
+
+
+    if len(sys.argv) > 1 and sys.argv[1] == 'thread-test':
+        import threading
+
+        thread_task = threading.Thread(target=task_func, args=())
+        thread_task.start()
+        thread_task.join()
+        print("thread-mode-finished")
+        sys.exit()
+    task_func()
 
     # print(json.dumps(chart_data, cls=EnhancedJSONEncoder, ensure_ascii=False))

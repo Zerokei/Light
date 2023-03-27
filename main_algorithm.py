@@ -518,8 +518,21 @@ def calc_realtime_power_data(power_curve):
     energy_curve = np.cumsum(power_curve) / 3600  # 累计发电量
     realtime_energy = [energy_curve[i] if i < 3600 else energy_curve[i] - energy_curve[i - 3600] for i in
                        range(len(energy_curve))]  # 实时发电量（当前一小时发电量）
+    realtime = []
+    for i in range(86400):
+        # 计算小时、分钟、秒
+        hour = i // 3600
+        minute = (i % 3600) // 60
+        second = i % 60
+        # 将小时、分钟、秒转换为字符串格式，例如'01'、'02'、'03'等
+        hour_str = str(hour).zfill(2)
+        minute_str = str(minute).zfill(2)
+        second_str = str(second).zfill(2)
+        # 将生成的时间字符串添加到结果字符串中
+        time_str = hour_str + ':' + minute_str + ':' + second_str
+        realtime.append(time_str)
     # 实时电压，实时电流，实时功率，实时发电量，累计发电量
-    return realtime_v, realtime_a, realtime_power, realtime_energy, energy_curve
+    return realtime_v, realtime_a, realtime_power, realtime_energy, energy_curve, realtime
 
 
 # 获取实时储能型/容量型数据

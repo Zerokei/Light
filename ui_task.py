@@ -6,7 +6,7 @@ import numpy as np
 import datetime
 from typing import Literal
 from typing import List
-from .main_algorithm import *
+from main_algorithm import *
 from dataclasses_json import dataclass_json
 
 

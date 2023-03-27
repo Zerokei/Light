@@ -531,7 +531,7 @@ def calc_realtime_bsc_data(b_soc_curve, sc_soc_curve, b_power_curve, sc_power_cu
     b_energy_curve = np.cumsum(b_power_curve) / 3600
     sc_energy_curve = np.cumsum(sc_power_curve) / 3600
     # 储能型实时SOC，储能型充放电状态，储能型实时功率，储能型累计充放电量，功率型实时SOC，功率型充放电状态，功率型实施功率，功率型累计充放电量
-    return b_soc_curve, b_state_curve, b_power_curve, b_energy_curve, sc_soc_curve, sc_state_curve, sc_power_curve, sc_energy_curve
+    return b_soc_curve * 100, b_state_curve, b_power_curve, b_energy_curve, sc_soc_curve * 100, sc_state_curve, sc_power_curve, sc_energy_curve
 
 
 # 获取发电实时数据

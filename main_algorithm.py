@@ -334,7 +334,7 @@ class CapacityAllocation:
                "-", "-", \
                "-", "-", \
                self.daily_raw_electricity * self.per_electricity_price, self.daily_electricity * self.per_electricity_price, \
-               "-", 0, \
+               "-", 0.0, \
                "-", self.yearly_net_earn / 365
 
     # 获取生命周期效益
@@ -415,7 +415,7 @@ class CapacityAllocation:
         n_particles = 40  # 种群粒子数量
         n_iterations = 300  # 最大迭代次数
 
-        while(1):
+        while True:
             pso = PSO(func=self.calc_cost, n_dim=4, pop=n_particles, max_iter=n_iterations, lb=lb, ub=ub, w=w, c1=c1, c2=c2)
             pso.run()
             if -pso.gbest_y[0] > 0:

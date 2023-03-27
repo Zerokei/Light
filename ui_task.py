@@ -3,9 +3,10 @@
 from dataclasses import dataclass, is_dataclass, asdict
 
 import numpy as np
+import datetime
 from typing import Literal
 from typing import List
-from .main_algorithm import *
+from main_algorithm import *
 from dataclasses_json import dataclass_json
 
 
@@ -301,22 +302,25 @@ class UiTask(object):
             self.powerOutputCurve)
         realtime_v, realtime_a, realtime_power, realtime_energy, energy_curve, time_curve = calc_realtime_power_data(
             self.smoothOutputCurve)
-        real_time_data.实时电压 = realtime_v,
-        real_time_data.实时电流 = realtime_a,
-        real_time_data.实时功率 = realtime_power,
-        real_time_data.实时发电量 = realtime_energy,
-        real_time_data.累计发电量 = energy_curve,
-        real_time_data.时间 = time_curve,
-        real_time_data.实时SOC值1 = b_soc_curve,
-        real_time_data.充放电状态1 = b_state_curve,
-        real_time_data.实时功率1 = b_power_curve,
-        real_time_data.累计冲放电1 = b_energy_curve,
-        real_time_data.时间2 = time_curve,
-        real_time_data.实时SOC值2 = sc_soc_curve,
-        real_time_data.充放电状态2 = sc_state_curve,
-        real_time_data.实时功率2 = sc_power_curve,
-        real_time_data.累计冲放电2 = sc_energy_curve,
-        real_time_data.时间2 = time_curve
+        current_time = datetime.datetime.now()
+        start_time = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        elapsed_seconds = int((current_time - start_time).total_seconds())
+        real_time_data.实时电压 = np.concatenate((realtime_v[elapsed_seconds:], realtime_v[:elapsed_seconds]))
+        real_time_data.实时电流 = np.concatenate((realtime_a[elapsed_seconds:], realtime_a[:elapsed_seconds]))
+        real_time_data.实时功率 = np.concatenate((realtime_power[elapsed_seconds:], realtime_power[:elapsed_seconds]))
+        real_time_data.实时发电量 = np.concatenate((realtime_energy[elapsed_seconds:], realtime_energy[:elapsed_seconds]))
+        real_time_data.累计发电量 = np.concatenate((energy_curve[elapsed_seconds:], energy_curve[:elapsed_seconds]))
+        real_time_data.时间 = np.concatenate((time_curve[elapsed_seconds:], time_curve[:elapsed_seconds]))
+        real_time_data.实时SOC值1 = np.concatenate((b_soc_curve[elapsed_seconds:], b_soc_curve[:elapsed_seconds]))
+        real_time_data.充放电状态1 = np.concatenate((b_state_curve[elapsed_seconds:], b_state_curve[:elapsed_seconds]))
+        real_time_data.实时功率1 = np.concatenate((b_power_curve[elapsed_seconds:], b_power_curve[:elapsed_seconds]))
+        real_time_data.累计冲放电1 = np.concatenate((b_energy_curve[elapsed_seconds:], b_energy_curve[:elapsed_seconds]))
+        real_time_data.时间1 = np.concatenate((time_curve[elapsed_seconds:], time_curve[:elapsed_seconds]))
+        real_time_data.实时SOC值2 = np.concatenate((sc_soc_curve[elapsed_seconds:], sc_soc_curve[:elapsed_seconds]))
+        real_time_data.充放电状态2 = np.concatenate((sc_state_curve[elapsed_seconds:], sc_state_curve[:elapsed_seconds]))
+        real_time_data.实时功率2 = np.concatenate((sc_power_curve[elapsed_seconds:], sc_power_curve[:elapsed_seconds]))
+        real_time_data.累计冲放电2 = np.concatenate((sc_energy_curve[elapsed_seconds:], sc_energy_curve[:elapsed_seconds]))
+        real_time_data.时间2 = np.concatenate((time_curve[elapsed_seconds:], time_curve[:elapsed_seconds]))
         return real_time_data
 
     def get_economic_left(self) -> UiEconomicLeft:

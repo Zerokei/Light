@@ -21,10 +21,10 @@
   - `socMax`: SOC上限
   - `socMin`: SOC下限
   - `efficiency`: 发电效率
-  - `powerCost`: 循环寿命（次）
-  - `capacityCost`: 功率成本（元/kW）
-  - `oeprationCost`: 容量成本（元/kWh）
-  - `cycleLimit`: 运维成本（元/kWh）
+  - `powerCost`: 功率成本（元/kW）
+  - `capacityCost`: 容量成本（元/kWh）
+  - `oeprationCost`: 运维成本（元/kWh）
+  - `cycleLimit`: 循环寿命（次）
   - `salvageValue`: 回收残值
 - `capacitor`: 电容器（功率性储能装置）
   - 其他所有的子参数和 `battery` 一致

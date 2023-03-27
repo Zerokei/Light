@@ -6,7 +6,7 @@ import numpy as np
 import datetime
 from typing import Literal
 from typing import List
-from main_algorithm import *
+from .main_algorithm import *
 from dataclasses_json import dataclass_json
 
 
@@ -106,16 +106,16 @@ class UiEconomicLeft:
     调峰: UiEconomicDataPair = None
     调频: UiEconomicDataPair = None
     售电: UiEconomicDataPair = None
-    偏差电量: UiEconomicDataPair = None
-    偏差电价惩罚: UiEconomicDataPair = None
+    偏差电量惩罚: UiEconomicDataPair = None
+    总计: UiEconomicDataPair = None
     field_names = [
         '运维',
         '峰谷差价',
         '调峰',
         '调频',
         '售电',
-        '偏差电量',
-        '偏差电价惩罚',
+        '偏差电量惩罚',
+        '总计',
     ]
 
 
@@ -336,8 +336,8 @@ class UiTask(object):
         economic_left.调峰 = UiEconomicDataPair(values[4], values[5])
         economic_left.调频 = UiEconomicDataPair(values[6], values[7])
         economic_left.售电 = UiEconomicDataPair(values[8], values[9])
-        economic_left.偏差电量 = UiEconomicDataPair(values[10], values[11])
-        economic_left.偏差电价惩罚 = UiEconomicDataPair(values[12], values[13])
+        economic_left.偏差电量惩罚 = UiEconomicDataPair(values[10], values[11])
+        economic_left.总计 = UiEconomicDataPair(values[12], values[13])
         return economic_left
 
     def get_economic_right(self) -> UiEconomicRight:
@@ -393,9 +393,28 @@ if __name__ == '__main__':
     print(chart_data)
     real_time_data = task.get_realtime_date()
     print('real_time_data', real_time_data)
-    print(task.get_economic_left())
-    print(task.get_economic_right())
+
+    economic_left = task.get_economic_left()
+    print("*** economic left ***")
+    print("运维:{}元, {}元".format(economic_left.运维.光伏, economic_left.运维.光储))
+    print("峰谷差价:{}元, {}元".format(economic_left.峰谷差价.光伏, economic_left.峰谷差价.光储))
+    print("调峰:{}元, {}元".format(economic_left.调峰.光伏, economic_left.调峰.光储))
+    print("调频:{}元, {}元".format(economic_left.调频.光伏, economic_left.调频.光储))
+    print("售电:{}元, {}元".format(economic_left.售电.光伏, economic_left.售电.光储))
+    print("偏差电量惩罚:{}元, {}元".format(economic_left.偏差电量惩罚.光伏, economic_left.偏差电量惩罚.光储))
+    print("总计:{}元, {}元".format(economic_left.总计.光伏, economic_left.总计.光储))
+
+    economic_right = task.get_economic_right()
+    print("*** economic right ***")
+    print("运行年限:{}年, {}年".format(economic_right.运行年限.光伏, economic_right.运行年限.光储))
+    print("回本时间:{}年, {}年".format(economic_right.回本时间.光伏, economic_right.回本时间.光储))
+    print("容量配置:{}mW, {}mW".format(economic_right.容量配置.光伏, economic_right.容量配置.光储))
+    print("储能一次性投资:{}元, {}元".format(economic_right.储能一次性投资.光伏, economic_right.储能一次性投资.光储))
+    print("年收益率:{}%, {}%".format(economic_right.年收益率.光伏, economic_right.年收益率.光储))
+
+    print("*** economic left bottom ***")
     print(task.get_economic_left_bottom())
+    print("*** economic_right_bottom ***")
     print(task.get_economic_right_bottom())
 
     # print(json.dumps(chart_data, cls=EnhancedJSONEncoder, ensure_ascii=False))

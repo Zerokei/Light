@@ -329,23 +329,23 @@ class CapacityAllocation:
     def get_daily_benefit(self):
         # 从第一行起，分别为：运维 峰谷差价 调峰 调频 售电 偏差电价惩罚 总计
         # 第一列为纯光伏，第二列为光储
-        return "N/A", self.c1 / self.life_span / 365, \
-               "N/A", self.c3 / self.life_span / 365, \
-               "N/A", "N/A", \
-               "N/A", "N/A", \
+        return "-", self.c1 / self.life_span / 365, \
+               "-", self.c3 / self.life_span / 365, \
+               "-", "-", \
+               "-", "-", \
                self.daily_raw_electricity * self.per_electricity_price, self.daily_electricity * self.per_electricity_price, \
-               "N/A", 0, \
-               "N/A", self.yearly_net_earn / 365
+               "-", 0, \
+               "-", self.yearly_net_earn / 365
 
     # 获取生命周期效益
     def get_lifespan_benefit(self):
         # 从第一行起，分别为：运行年限 回本时间 容量配置 储能一次性投资 年收益率
         # 第一列为纯光伏，第二列为光储
         return self.life_span, self.life_span, \
-               "N/A", float(self.yearly_cost / self.yearly_net_earn), \
+               "-", float(self.yearly_cost / self.yearly_net_earn), \
                self.P_r, self.P_r, \
-               "N/A", self.c0, \
-               "N/A", float(self.yearly_net_earn / self.yearly_cost)
+               "-", self.c0, \
+               "-", float(self.yearly_net_earn / self.yearly_cost) * 100
 
     # 获取容量型储能配置
     def get_b_para(self):
@@ -419,8 +419,8 @@ class CapacityAllocation:
         pso.run()
 
         if -pso.gbest_y[0] < 0:
-            pass
-            # return self.energy_storage_capacity_allocation()
+            # pass
+            return self.energy_storage_capacity_allocation()
         self.b_ratio, self.b_capacity, self.sc_ratio, self.sc_capacity = pso.gbest_x
         self.b_power = self.b_capacity / self.b_ratio
         self.sc_power = self.sc_capacity / self.sc_ratio
@@ -482,34 +482,6 @@ def plt_co2_reduce(raw_energy_curve, smooth_energy_curve):
     draw_bar([raw_energy_curve * k, '纯光伏'], [smooth_energy_curve * k, '光储'], title="CO2减排量", x_label="时间(h)",
              y_label="CO2减排量(t)")
 
-
-# 获取容量型储能配置
-def get_capacity_config(b_power, b_capacity):
-    print("容量型储能配置")
-    print("功率：{{}}".format(b_power))
-    print("容量：{{}}".format(b_capacity))
-
-
-# 获取功率型储能配置
-def get_power_config(sc_power, sc_capacity):
-    print("功率型储能配置")
-    print("功率：{{}}".format(sc_power))
-    print("容量：{{}}".format(sc_capacity))
-
-
-# 获取日效益
-def get_daily_benefit():
-    # TODO: 待完善算法
-    print("日效益")
-    return None
-
-
-# 获取生命周期效益
-def get_life_span_benefit():
-    # TODO: 待完善算法
-    return None
-
-
 # 计算实时发电数据
 def calc_realtime_power_data(power_curve):
     realtime_v = np.full(len(power_curve), '-')  # 实时电压
@@ -532,22 +504,6 @@ def calc_realtime_bsc_data(b_soc_curve, sc_soc_curve, b_power_curve, sc_power_cu
     sc_energy_curve = np.cumsum(sc_power_curve) / 3600
     # 储能型实时SOC，储能型充放电状态，储能型实时功率，储能型累计充放电量，功率型实时SOC，功率型充放电状态，功率型实施功率，功率型累计充放电量
     return b_soc_curve * 100, b_state_curve, b_power_curve, b_energy_curve, sc_soc_curve * 100, sc_state_curve, sc_power_curve, sc_energy_curve
-
-
-# 获取发电实时数据
-def get_realtime_power_data(curve, t):
-    print("发电实时数据")
-    print("电压：N/A")
-    print("电流：N/A")
-    print("功率：{}".format(curve(t)))
-
-
-# 获取储能实时数据
-def get_realtime_store_data(curve, t):
-    print("储能实时数据")
-    print("电压：N/A")
-    print("电流：N/A")
-    print("功率：{}".format(curve(t)))
 
 
 # 程序入口

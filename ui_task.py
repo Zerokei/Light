@@ -275,8 +275,8 @@ class UiTask(object):
             x_label="时间(h)",
             y_label="百分比(%)",
             lines=[
-                UiChartLine('功率型', self.bSocCurve),
-                UiChartLine('容量型', self.scSocCurve),
+                UiChartLine('功率型', self.scSocCurve),
+                UiChartLine('容量型', self.bSocCurve),
             ],
             type='line'
         )

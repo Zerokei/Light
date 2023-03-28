@@ -342,10 +342,10 @@ class CapacityAllocation:
         # 从第一行起，分别为：运行年限 回本时间 容量配置 储能一次性投资 年收益率
         # 第一列为纯光伏，第二列为光储
         return self.life_span, self.life_span, \
-               "-", float(self.yearly_cost / self.yearly_net_earn), \
+               "-", float((self.yearly_cost * self.life_span) / self.yearly_net_earn), \
                self.P_r, self.P_r, \
                "-", self.c0, \
-               "-", float(self.yearly_net_earn / self.yearly_cost) * 100
+               "-", float(self.yearly_net_earn / (self.yearly_cost * self.life_span)) * 100
 
     # 获取容量型储能配置
     def get_b_para(self):

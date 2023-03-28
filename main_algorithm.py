@@ -97,7 +97,7 @@ def get_file_encoding(file_path):
 def init_data(config, encoding=None):
     # 读取指定发电输出曲线文件
     df = None
-    encodings = [encoding, get_file_encoding(config['outputCurvePath']), "utf-8", "cp1252","gbk"]
+    encodings = [encoding, get_file_encoding(config['outputCurvePath']), "utf-8", "cp1252","gbk", "gb2312", "gb18030", "utf-16", "big5","ascii","latin1", "unicode"]
     for encoding in encodings:
         print("csv encoding", encoding)
         try:

@@ -216,6 +216,7 @@ class UiTask(object):
         self.rawValidCurve = calc_satisfy(self.config, self.rawOutputCurve)
         self.smoothOutputCurve = calc_smooth_curve(self.config, self.rawOutputCurve)  # 平抑后的出力曲线
         self.update_progress_info(ProgressInfo("初始化数据完成", 12, "初始化执行"))
+        # self.smoothValidCurve = calc_satisfy(self.config, self.smoothOutputCurve)
         self.smoothValidCurve = np.ones(len(self.smoothOutputCurve))
         _ = subsampling_algorithm(self.rawOutputCurve - self.smoothOutputCurve, n=70)
         self.powerOutputCurve = _[0]

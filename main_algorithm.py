@@ -124,6 +124,8 @@ def calc_smooth_curve(config, p_pv):
     f_c_max = 0.001
     f_c_min = 0.000001
     iteration_times = 5
+
+    p_o_filtered_valid: np.array = None # 合法的平滑曲线
     for i in range(iteration_times):
         f_c = (f_c_max + f_c_min) / 2
         # 低通滤波
@@ -133,9 +135,10 @@ def calc_smooth_curve(config, p_pv):
             (np.zeros(first_non_zero), p_o_filtered[first_non_zero:last_non_zero], np.zeros(len(p_pv) - last_non_zero)))
         if judge_satisfy(config, p_o_filtered, first_non_zero, last_non_zero):
             f_c_min = f_c
+            p_o_filtered_valid = p_o_filtered
         else:
             f_c_max = f_c
-    return p_o_filtered
+    return p_o_filtered_valid
 
 
 # 判断当前曲线是否全部满足并网要求
@@ -179,13 +182,18 @@ def calc_satisfy_main(config, p_pv, first_non_zero, last_non_zero):
     # p_o 标记哪些时间可以并网
     p_o = np.ones(len(p_pv))
 
+    delta_p_o_30min_max = 0
+    delta_p_o_1min_max = 0
+
     for t in range(first_non_zero, last_non_zero):
         p_o_1min_s = [(p_pv_sum[t - s * 60] - p_pv_sum[t - s * 60 - 60]) / 60 for s in range(30)]
         delta_p_o_30min = (max(p_o_1min_s) - min(p_o_1min_s)) / P_r
         delta_p_o_1min = (max(p_pv[t - 59:t + 1]) - min(p_pv[t - 59:t + 1])) / P_r
+        delta_p_o_30min_max = max(delta_p_o_30min_max, delta_p_o_30min)
+        delta_p_o_1min_max = max(delta_p_o_1min_max, delta_p_o_1min)
         if not (delta_p_o_30min < gamma_30min and delta_p_o_1min < gamma_1min):
             p_o[t] = 0
-
+    print("1min最大波动：{}%, 30min最大波动：{}%".format(delta_p_o_1min_max * 100, delta_p_o_30min_max * 100))
     return p_o
 
 

@@ -124,8 +124,8 @@ def calc_smooth_curve(config, p_pv):
     f_c_max = 0.001
     f_c_min = 0.000001
     iteration_times = 5
-
-    p_o_filtered_valid: np.array = None # 合法的平滑曲线
+    
+    p_o_filtlered_valid: np.array = None # 合法的平滑曲线
     for i in range(iteration_times):
         f_c = (f_c_max + f_c_min) / 2
         # 低通滤波
@@ -133,20 +133,19 @@ def calc_smooth_curve(config, p_pv):
         p_o_filtered = signal.filtfilt(b, a, p_pv)
         p_o_filtered = np.concatenate(
             (np.zeros(first_non_zero), p_o_filtered[first_non_zero:last_non_zero], np.zeros(len(p_pv) - last_non_zero)))
-        if judge_satisfy(config, p_o_filtered, first_non_zero, last_non_zero):
+        if judge_satisfy(config['installedPowerCapacity'], p_o_filtered, first_non_zero, last_non_zero):
             f_c_min = f_c
-            p_o_filtered_valid = p_o_filtered
+            p_o_filtlered_valid = p_o_filtered
         else:
             f_c_max = f_c
-    return p_o_filtered_valid
+    return p_o_filtlered_valid
 
 
 # 判断当前曲线是否全部满足并网要求
-# @jit(nopython=True)
-def judge_satisfy(config, p_pv, first_non_zero, last_non_zero):
+@jit(nopython=True)
+def judge_satisfy(P_r, p_pv, first_non_zero, last_non_zero):
     gamma_1min = 0.1
     gamma_30min = 0.3
-    P_r = config['installedPowerCapacity']
     # p_pv_minute 预处理前一分钟平均功率，优化推导速度
     p_pv_sum = np.cumsum(p_pv)  # 预处理功率前缀和
     # p_pv_minute = [0 if t < 60 else (p_pv_sum[t] - p_pv_sum[t - 60]) / 60 for t in range(len(p_pv))]
@@ -168,14 +167,13 @@ def judge_satisfy(config, p_pv, first_non_zero, last_non_zero):
 def calc_satisfy(config, p_pv):
     first_non_zero = next((i for i, x in enumerate(p_pv) if x != 0), None)
     last_non_zero = next((len(p_pv) - i - 1 for i, x in enumerate(reversed(p_pv)) if x != 0), None)
-    return calc_satisfy_main(config, p_pv, first_non_zero, last_non_zero)
+    return calc_satisfy_main(config['installedPowerCapacity'], p_pv, first_non_zero, last_non_zero)
 
 
-# @jit(nopython=True)
-def calc_satisfy_main(config, p_pv, first_non_zero, last_non_zero):
+@jit(nopython=True)
+def calc_satisfy_main(P_r, p_pv, first_non_zero, last_non_zero):
     gamma_1min = 0.1
     gamma_30min = 0.3
-    P_r = config['installedPowerCapacity']
     # p_pv_minute 预处理前一分钟平均功率，优化推导速度
     p_pv_sum = np.cumsum(p_pv)  # 预处理功率前缀和
 
@@ -193,7 +191,7 @@ def calc_satisfy_main(config, p_pv, first_non_zero, last_non_zero):
         delta_p_o_1min_max = max(delta_p_o_1min_max, delta_p_o_1min)
         if not (delta_p_o_30min < gamma_30min and delta_p_o_1min < gamma_1min):
             p_o[t] = 0
-    print("1min最大波动：{}%, 30min最大波动：{}%".format(delta_p_o_1min_max * 100, delta_p_o_30min_max * 100))
+    # print("1min最大波动：{}%, 30min最大波动：{}%".format(delta_p_o_1min_max * 100, delta_p_o_30min_max * 100))
     return p_o
 
 

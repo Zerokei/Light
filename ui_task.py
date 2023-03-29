@@ -389,6 +389,7 @@ import os, json
 DIR_PATH = os.path.abspath(os.path.dirname(__file__))
 
 if __name__ == '__main__':
+    start_time = time.time()
     print(sys.argv)
     config = json.loads(open(os.path.join(DIR_PATH, 'config.json')).read())
     config.update({"outputCurvePath": os.path.join(DIR_PATH, 'data', 'example_sec.csv')})
@@ -440,4 +441,7 @@ if __name__ == '__main__':
         sys.exit()
     task_func()
 
+    end_time = time.time()
+    run_time = end_time - start_time
+    print("程序运行时间：", run_time, "秒")
     # print(json.dumps(chart_data, cls=EnhancedJSONEncoder, ensure_ascii=False))

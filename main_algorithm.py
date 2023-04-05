@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import json
-import time
+import os, time
 import cProfile
 from scipy import signal
 import matplotlib.pyplot as plt
@@ -125,7 +125,7 @@ def calc_smooth_curve(config, p_pv):
     f_c_min = 0.000001
     iteration_times = 5
     
-    p_o_filtlered_valid: np.array = None # 合法的平滑曲线
+    p_o_filtered_valid: np.array = None # 合法的平滑曲线
     for i in range(iteration_times):
         f_c = (f_c_max + f_c_min) / 2
         # 低通滤波
@@ -135,10 +135,10 @@ def calc_smooth_curve(config, p_pv):
             (np.zeros(first_non_zero), p_o_filtered[first_non_zero:last_non_zero], np.zeros(len(p_pv) - last_non_zero)))
         if judge_satisfy(config['installedPowerCapacity'], p_o_filtered, first_non_zero, last_non_zero):
             f_c_min = f_c
-            p_o_filtlered_valid = p_o_filtered
+            p_o_filtered_valid = p_o_filtered
         else:
             f_c_max = f_c
-    return p_o_filtlered_valid
+    return p_o_filtered_valid
 
 
 # 判断当前曲线是否全部满足并网要求
@@ -447,7 +447,7 @@ def compare_storage(b_curve, sc_curve, daily_electricity, daily_raw_electricity)
     result = [0, 0, 0]
     for i in range(3):
         print("===" + caption[i] + "===")
-        model = CapacityAllocation(power_output_curve[i], capacity_output_curve[i], daily_electricity,
+        model = CapacityAllocation(config, power_output_curve[i], capacity_output_curve[i], daily_electricity,
                                    daily_raw_electricity)
         model.energy_storage_capacity_allocation()
         model.print_more_info()
@@ -516,12 +516,15 @@ def calc_realtime_bsc_data(b_soc_curve, sc_soc_curve, b_power_curve, sc_power_cu
 # 程序入口
 if __name__ == '__main__':
     start_time = time.time()
+
+    DIR_PATH = os.path.abspath(os.path.dirname(__file__))
+    config = json.loads(open(os.path.join(DIR_PATH, 'config.json')).read())
     # 1. 预处理光伏日输出曲线
-    rawOutputCurve = init_data()  # 平抑前的出力曲线
-    rawValidCurve = calc_satisfy(rawOutputCurve)  # 平抑前(纯光伏)并网时间曲线
+    rawOutputCurve = init_data(config)  # 平抑前的出力曲线
+    rawValidCurve = calc_satisfy(config, rawOutputCurve)  # 平抑前(纯光伏)并网时间曲线
 
     # 2. 平抑光伏日输出曲线，获得平抑后的出力曲线
-    smoothOutputCurve = calc_smooth_curve(rawOutputCurve)  # 平抑后的出力曲线
+    smoothOutputCurve = calc_smooth_curve(config, rawOutputCurve)  # 平抑后的出力曲线
     # smoothValidCurve = calc_satisfy(smoothOutputCurve)   # 平抑后(光储)并网时间曲线
     smoothValidCurve = np.ones(len(smoothOutputCurve))
     # cProfile.run('calc_smooth_curve(rawOutputCurve)')
@@ -542,7 +545,7 @@ if __name__ == '__main__':
 
     # 4. 计算最优储能容量配置
 
-    Model = CapacityAllocation(capacityOutputCurve, powerOutputCurve, np.sum(smoothOutputCurve) / 3600,
+    Model = CapacityAllocation(config, capacityOutputCurve, powerOutputCurve, np.sum(smoothOutputCurve) / 3600,
                                np.sum(rawOutputCurve) / 3600)
     Model.energy_storage_capacity_allocation()
     # Model.print_more_info()
